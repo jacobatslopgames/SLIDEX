@@ -1,3 +1,6 @@
+<!-- THIS WORK IS COPYRIGHTED UNDER THE ALL RIGHTS RESERVED ACT -->
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -249,8 +252,11 @@
     }
 
     .pc-window {
-      width: 680px;
+      width: 720px;
       max-width: 95vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
       background: #0b1024;
       border: 2px solid #00f3ff;
       box-shadow: 0 0 35px rgba(0, 243, 255, 0.4);
@@ -277,11 +283,38 @@
       font-weight: bold;
     }
 
+    .pc-nav-tabs {
+      display: flex;
+      background: #070b1a;
+      border-bottom: 1px solid #233066;
+    }
+
+    .pc-tab-btn {
+      flex: 1;
+      padding: 11px 14px;
+      background: #070b1a;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: #9ab0e0;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .pc-tab-btn.active {
+      color: #00f3ff;
+      background: #0b1024;
+      border-bottom-color: #00f3ff;
+    }
+
     .pc-body {
       padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 14px;
+      overflow-y: auto;
     }
 
     .pc-row {
@@ -296,7 +329,7 @@
       color: #00f3ff;
     }
 
-    input[type="text"] {
+    input[type="text"], select {
       background: #050814;
       border: 1px solid #00f3ff;
       color: #fff;
@@ -308,10 +341,12 @@
     .mode-buttons {
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     .mode-btn {
       flex: 1;
+      min-width: 120px;
       padding: 10px;
       background: #131b3a;
       border: 1px solid #3a4b8c;
@@ -367,8 +402,24 @@
       border-radius: 4px;
     }
 
+    .btn-danger-outline {
+      background: rgba(255, 0, 127, 0.15);
+      color: #ff66b2;
+      border: 1px solid #ff007f;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
     .pc-error {
       color: #ff4d6d;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .pc-status {
+      color: #39ff14;
       font-weight: bold;
       font-size: 13px;
     }
@@ -399,6 +450,66 @@
 
     .server-item:hover {
       background: rgba(0, 243, 255, 0.15);
+    }
+
+    .settings-section {
+      background: rgba(13, 20, 46, 0.85);
+      border: 1px solid #233066;
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .settings-section-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ff007f;
+      letter-spacing: 1px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: #00f3ff;
+      cursor: pointer;
+    }
+
+    .slider-val {
+      min-width: 58px;
+      text-align: right;
+      font-weight: 800;
+      color: #ffe600;
+      font-size: 13px;
+    }
+
+    .shader-file-box {
+      background: #050814;
+      border: 1px dashed #00f3ff;
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .shader-meta {
+      font-size: 12px;
+      color: #b8c7e8;
+      word-break: break-word;
+    }
+
+    .shader-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     #leaderboardBox hr {
@@ -457,10 +568,16 @@
   <div id="pcModal" class="hidden">
     <div class="pc-window">
       <div class="pc-header">
-        <span>CYBER-OS v9.4 // SERVER BROWSER &amp; MATCHMAKING</span>
+        <span>CYBER-OS v9.4 // SERVER BROWSER &amp; SETTINGS</span>
         <button id="closePcBtn">X</button>
       </div>
-      <div class="pc-body">
+      <div class="pc-nav-tabs">
+        <button class="pc-tab-btn active" data-tab="servers">SERVER BROWSER</button>
+        <button class="pc-tab-btn" data-tab="settings">SETTINGS</button>
+      </div>
+
+      <!-- TAB 1: SERVER BROWSER -->
+      <div class="pc-body" id="pcTabServers">
         <div class="pc-row">
           <label>RUNNER CALLSIGN:</label>
           <input type="text" id="playerNameInput" value="NeonRunner" maxlength="16" />
@@ -493,6 +610,80 @@
 
         <div class="pc-server-list-header">ACTIVE CITY SERVERS (CLICK TO SELECT ID)</div>
         <div id="serverListContainer" class="server-list"></div>
+      </div>
+
+      <!-- TAB 2: SETTINGS -->
+      <div class="pc-body hidden" id="pcTabSettings">
+        <!-- GRAPHICS -->
+        <div class="settings-section">
+          <div class="settings-section-title">GRAPHICS</div>
+
+          <div class="pc-row">
+            <label>GRAPHICS PRESET:</label>
+            <select id="graphicsPresetSelect">
+              <option value="low">LOW (High FPS / Lower Resolution &amp; Sparks)</option>
+              <option value="medium">MEDIUM (Balanced)</option>
+              <option value="high" selected>HIGH (Crisp Scaling &amp; Full Sparks)</option>
+              <option value="ultra">ULTRA (Native Resolution &amp; Max Glow)</option>
+            </select>
+          </div>
+
+          <div class="pc-row">
+            <label>RESOLUTION SCALE:</label>
+            <div class="slider-row">
+              <input type="range" id="resScaleSlider" min="0.5" max="1.5" step="0.05" value="1.0" />
+              <span class="slider-val" id="resScaleValue">100%</span>
+            </div>
+          </div>
+
+          <div class="pc-row">
+            <label>BRIGHTNESS / EXPOSURE:</label>
+            <div class="slider-row">
+              <input type="range" id="brightnessSlider" min="0.5" max="1.8" step="0.05" value="1.0" />
+              <span class="slider-val" id="brightnessValue">100%</span>
+            </div>
+          </div>
+
+          <div class="pc-row">
+            <label>AMBIENT SPARKS DENSITY:</label>
+            <div class="slider-row">
+              <input type="range" id="sparksSlider" min="0" max="650" step="10" value="650" />
+              <span class="slider-val" id="sparksValue">650</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FOB (FIELD OF VIEW) -->
+        <div class="settings-section">
+          <div class="settings-section-title">FOB (FIELD OF VIEW)</div>
+          <div class="pc-row">
+            <label>BASE FIELD OF VIEW (FOB / FOV):</label>
+            <div class="slider-row">
+              <input type="range" id="fobSlider" min="50" max="120" step="1" value="60" />
+              <span class="slider-val" id="fobValue">60°</span>
+            </div>
+          </div>
+          <div class="shader-meta">
+            Adjusts your base camera Field of View across both Babylon 3D and Three.js overlay, while preserving sprint and slide speed FOV shifts.
+          </div>
+        </div>
+
+        <!-- LOAD JSON SHADERS -->
+        <div class="settings-section">
+          <div class="settings-section-title">LOAD JSON SHADERS</div>
+          <div class="shader-file-box">
+            <input type="file" id="shaderJsonInput" accept=".json,application/json" />
+            <div class="shader-meta" id="shaderStatusText">
+              No custom JSON shader loaded. Supports JSON with <code>vertexShader</code>/<code>fragmentShader</code> or shader tint/fog/glow/emissive parameters.
+            </div>
+            <div class="shader-actions">
+              <button type="button" id="applySampleShaderBtn" class="btn-secondary">LOAD SAMPLE NEON JSON</button>
+              <button type="button" id="resetShaderBtn" class="btn-danger-outline">RESET TO DEFAULT SHADER</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="settingsFeedback" class="pc-status hidden"></div>
       </div>
     </div>
   </div>
@@ -684,12 +875,22 @@
     const leaderboardList = document.getElementById('leaderboardList');
     const eventBanner = document.getElementById('eventBanner');
     const pcError = document.getElementById('pcError');
+    const settingsFeedback = document.getElementById('settingsFeedback');
 
     function showEvent(msg) {
       eventBanner.textContent = msg;
       eventBanner.classList.remove('hidden');
       clearTimeout(showEvent._t);
       showEvent._t = setTimeout(() => eventBanner.classList.add('hidden'), 3500);
+    }
+
+    function showSettingsStatus(msg, isError = false) {
+      if (!settingsFeedback) return;
+      settingsFeedback.textContent = msg;
+      settingsFeedback.className = isError ? 'pc-error' : 'pc-status';
+      settingsFeedback.classList.remove('hidden');
+      clearTimeout(showSettingsStatus._t);
+      showSettingsStatus._t = setTimeout(() => settingsFeedback.classList.add('hidden'), 4000);
     }
 
     const scene = new BABYLON.Scene(engine);
@@ -942,6 +1143,159 @@
 
     const matPants = new BABYLON.StandardMaterial("pantsMat", scene);
     matPants.diffuseTexture = makePlasterWallTexture("pantsTex", "#111827");
+
+    // --- SETTINGS STATE: GRAPHICS, FOV, AND JSON SHADERS ---
+    const settingsState = {
+      preset: 'high',
+      resolutionScale: 1.0,
+      brightness: 1.0,
+      sparksCount: 650,
+      baseFobDeg: 60,
+      customShader: null // Holds parsed JSON shader config
+    };
+
+    const baseNeonColors = {
+      cyan: BABYLON.Color3.FromHexString("#00f3ff"),
+      pink: BABYLON.Color3.FromHexString("#ff007f"),
+      purple: BABYLON.Color3.FromHexString("#9d00ff"),
+      yellow: BABYLON.Color3.FromHexString("#ffe600"),
+      green: BABYLON.Color3.FromHexString("#39ff14")
+    };
+
+    let activeCustomPostProcess = null;
+
+    function getBaseFovRadians() {
+      return BABYLON.Tools.ToRadians(settingsState.baseFobDeg);
+    }
+
+    function applyGraphicsAndFobSettings() {
+      const hwLevel = Math.max(0.25, Math.min(2.0, 1.0 / settingsState.resolutionScale));
+      engine.setHardwareScalingLevel(hwLevel);
+
+      const b = settingsState.brightness;
+      hemiLight.intensity = 0.78 * b;
+      dirLight.intensity = 1.2 * b;
+
+      const glowBoost = settingsState.preset === 'ultra' ? 1.15 : (settingsState.preset === 'low' ? 0.65 : 0.85);
+      matCyan.emissiveColor = baseNeonColors.cyan.scale(glowBoost * b);
+      matPink.emissiveColor = baseNeonColors.pink.scale(glowBoost * b);
+      matPurple.emissiveColor = baseNeonColors.purple.scale(glowBoost * 0.88 * b);
+      matYellow.emissiveColor = baseNeonColors.yellow.scale(glowBoost * b);
+      matGreen.emissiveColor = baseNeonColors.green.scale(glowBoost * b);
+
+      sparkGeo.setDrawRange(0, Math.max(0, Math.min(sparkCount, settingsState.sparksCount)));
+      sparkMat.opacity = Math.min(1.0, 0.72 * b);
+      sparkMat.size = settingsState.preset === 'ultra' ? 0.55 : (settingsState.preset === 'low' ? 0.35 : 0.45);
+
+      const baseRad = getBaseFovRadians();
+      camera.fov = baseRad;
+      threeCamera.fov = settingsState.baseFobDeg;
+      threeCamera.updateProjectionMatrix();
+    }
+
+    function clearCustomShaderPostProcess() {
+      if (activeCustomPostProcess) {
+        try {
+          activeCustomPostProcess.dispose(camera);
+        } catch (_) {}
+        activeCustomPostProcess = null;
+      }
+    }
+
+    function applyJsonShaderConfig(jsonData, fileName = "shader.json") {
+      if (!jsonData || typeof jsonData !== 'object') {
+        throw new Error("JSON root must be an object.");
+      }
+
+      clearCustomShaderPostProcess();
+
+      const shaderName = typeof jsonData.name === 'string' && jsonData.name.trim() ? jsonData.name.trim() : fileName;
+      const fogColorHex = jsonData.fogColor || jsonData.fog?.color;
+      if (typeof fogColorHex === 'string' && /^#[0-9a-fA-F]{6}$/.test(fogColorHex.trim())) {
+        scene.fogColor = BABYLON.Color3.FromHexString(fogColorHex.trim());
+      }
+      const fogDensity = typeof jsonData.fogDensity === 'number' ? jsonData.fogDensity : jsonData.fog?.density;
+      if (typeof fogDensity === 'number' && Number.isFinite(fogDensity) && fogDensity >= 0 && fogDensity <= 0.05) {
+        scene.fogDensity = fogDensity;
+      }
+
+      const tintHex = jsonData.tintColor || jsonData.accentColor;
+      if (typeof tintHex === 'string' && /^#[0-9a-fA-F]{6}$/.test(tintHex.trim())) {
+        const tintCol = BABYLON.Color3.FromHexString(tintHex.trim());
+        matCyan.emissiveColor = tintCol.scale(0.9 * settingsState.brightness);
+        auraMat.color.set(tintHex.trim());
+      } else {
+        applyGraphicsAndFobSettings();
+      }
+
+      const fragCode = typeof jsonData.fragmentShader === 'string' ? jsonData.fragmentShader.trim() : '';
+      const vertCode = typeof jsonData.vertexShader === 'string' ? jsonData.vertexShader.trim() : '';
+
+      if (fragCode) {
+        const shaderSourceName = "customJsonShader_" + Date.now();
+        BABYLON.Effect.ShadersStore[shaderSourceName + "FragmentShader"] = fragCode;
+        if (vertCode) {
+          BABYLON.Effect.ShadersStore[shaderSourceName + "VertexShader"] = vertCode;
+        }
+
+        const uniforms = Array.isArray(jsonData.uniforms)
+          ? jsonData.uniforms.filter(u => typeof u === 'string')
+          : ["uTime", "uIntensity"];
+
+        const pp = new BABYLON.PostProcess(
+          "jsonPostProcess",
+          shaderSourceName,
+          uniforms,
+          null,
+          1.0,
+          camera,
+          BABYLON.Texture.BILINEAR_SAMPLINGMODE,
+          engine,
+          false
+        );
+
+        const shaderTimeStart = performance.now();
+        const intensityVal = typeof jsonData.intensity === 'number' ? jsonData.intensity : 1.0;
+
+        pp.onApply = (effect) => {
+          const elapsed = (performance.now() - shaderTimeStart) / 1000;
+          if (uniforms.includes("uTime")) effect.setFloat("uTime", elapsed);
+          if (uniforms.includes("time")) effect.setFloat("time", elapsed);
+          if (uniforms.includes("uIntensity")) effect.setFloat("uIntensity", intensityVal);
+          if (uniforms.includes("intensity")) effect.setFloat("intensity", intensityVal);
+        };
+
+        activeCustomPostProcess = pp;
+      }
+
+      settingsState.customShader = {
+        name: shaderName,
+        raw: jsonData,
+        hasCustomFragment: Boolean(fragCode)
+      };
+
+      const shaderStatusText = document.getElementById('shaderStatusText');
+      if (shaderStatusText) {
+        shaderStatusText.textContent = `Loaded "${shaderName}" (${fragCode ? 'Custom GLSL Post-Shader Active' : 'Shader Parameters Applied'}).`;
+      }
+      showSettingsStatus(`JSON Shader "${shaderName}" applied.`);
+    }
+
+    function resetJsonShaderToDefault() {
+      clearCustomShaderPostProcess();
+      settingsState.customShader = null;
+      scene.fogColor = new BABYLON.Color3(0.03, 0.035, 0.085);
+      scene.fogDensity = 0.004;
+      auraMat.color.setHex(0x00f3ff);
+      applyGraphicsAndFobSettings();
+      const shaderStatusText = document.getElementById('shaderStatusText');
+      const fileInput = document.getElementById('shaderJsonInput');
+      if (fileInput) fileInput.value = '';
+      if (shaderStatusText) {
+        shaderStatusText.textContent = "Reset to default neon shader.";
+      }
+      showSettingsStatus("Shader reset to default.");
+    }
 
     let colliders = [];
     let houseMeshes = [];
@@ -1641,7 +1995,6 @@
           isSliding = false;
           jumpCount = isWallScale ? 0 : 1;
           if (isWallScale) {
-            // Slight inward/upward wall-jump kick so spamming wall-run + jump scales walls smoothly
             playerPosX -= Math.cos(cameraYaw) * wallRunSide * 0.45;
             playerPosZ += Math.sin(cameraYaw) * wallRunSide * 0.45;
             wallRunSide = 0;
@@ -1788,6 +2141,140 @@
       });
     });
 
+    // PC Tab Switching (Server Browser vs Settings)
+    const pcTabServers = document.getElementById('pcTabServers');
+    const pcTabSettings = document.getElementById('pcTabSettings');
+    document.querySelectorAll('.pc-tab-btn').forEach(tabBtn => {
+      tabBtn.addEventListener('click', () => {
+        document.querySelectorAll('.pc-tab-btn').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+        const targetTab = tabBtn.dataset.tab;
+        if (targetTab === 'settings') {
+          pcTabServers.classList.add('hidden');
+          pcTabSettings.classList.remove('hidden');
+        } else {
+          pcTabSettings.classList.add('hidden');
+          pcTabServers.classList.remove('hidden');
+          renderServerList();
+        }
+      });
+    });
+
+    // Graphics & FOB Controls Wiring
+    const graphicsPresetSelect = document.getElementById('graphicsPresetSelect');
+    const resScaleSlider = document.getElementById('resScaleSlider');
+    const resScaleValue = document.getElementById('resScaleValue');
+    const brightnessSlider = document.getElementById('brightnessSlider');
+    const brightnessValue = document.getElementById('brightnessValue');
+    const sparksSlider = document.getElementById('sparksSlider');
+    const sparksValue = document.getElementById('sparksValue');
+    const fobSlider = document.getElementById('fobSlider');
+    const fobValue = document.getElementById('fobValue');
+
+    const presetConfigs = {
+      low: { resScale: 0.65, brightness: 0.9, sparks: 150, fob: 60 },
+      medium: { resScale: 0.85, brightness: 1.0, sparks: 400, fob: 60 },
+      high: { resScale: 1.0, brightness: 1.0, sparks: 650, fob: 60 },
+      ultra: { resScale: 1.35, brightness: 1.15, sparks: 650, fob: 60 }
+    };
+
+    graphicsPresetSelect.addEventListener('change', () => {
+      const p = graphicsPresetSelect.value;
+      settingsState.preset = p;
+      const cfg = presetConfigs[p];
+      if (cfg) {
+        settingsState.resolutionScale = cfg.resScale;
+        settingsState.brightness = cfg.brightness;
+        settingsState.sparksCount = cfg.sparks;
+        resScaleSlider.value = String(cfg.resScale);
+        resScaleValue.textContent = Math.round(cfg.resScale * 100) + '%';
+        brightnessSlider.value = String(cfg.brightness);
+        brightnessValue.textContent = Math.round(cfg.brightness * 100) + '%';
+        sparksSlider.value = String(cfg.sparks);
+        sparksValue.textContent = String(cfg.sparks);
+      }
+      applyGraphicsAndFobSettings();
+      showSettingsStatus(`Preset "${p.toUpperCase()}" applied.`);
+    });
+
+    resScaleSlider.addEventListener('input', () => {
+      const val = parseFloat(resScaleSlider.value);
+      settingsState.resolutionScale = val;
+      resScaleValue.textContent = Math.round(val * 100) + '%';
+      applyGraphicsAndFobSettings();
+    });
+
+    brightnessSlider.addEventListener('input', () => {
+      const val = parseFloat(brightnessSlider.value);
+      settingsState.brightness = val;
+      brightnessValue.textContent = Math.round(val * 100) + '%';
+      applyGraphicsAndFobSettings();
+    });
+
+    sparksSlider.addEventListener('input', () => {
+      const val = parseInt(sparksSlider.value, 10);
+      settingsState.sparksCount = val;
+      sparksValue.textContent = String(val);
+      applyGraphicsAndFobSettings();
+    });
+
+    fobSlider.addEventListener('input', () => {
+      const deg = parseInt(fobSlider.value, 10);
+      settingsState.baseFobDeg = deg;
+      fobValue.textContent = `${deg}°`;
+      applyGraphicsAndFobSettings();
+    });
+
+    // JSON Shader File Loader Wiring
+    const shaderJsonInput = document.getElementById('shaderJsonInput');
+    const applySampleShaderBtn = document.getElementById('applySampleShaderBtn');
+    const resetShaderBtn = document.getElementById('resetShaderBtn');
+
+    shaderJsonInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(String(ev.target.result || ''));
+          applyJsonShaderConfig(parsed, file.name);
+        } catch (err) {
+          showSettingsStatus("Invalid JSON shader file: " + (err && err.message ? err.message : String(err)), true);
+        }
+      };
+      reader.onerror = () => {
+        showSettingsStatus("Failed to read JSON file.", true);
+      };
+      reader.readAsText(file);
+    });
+
+    applySampleShaderBtn.addEventListener('click', () => {
+      const sampleJson = {
+        name: "CyberScanlinePulse",
+        tintColor: "#ff007f",
+        fogColor: "#140626",
+        fogDensity: 0.0055,
+        intensity: 0.85,
+        uniforms: ["uTime", "uIntensity"],
+        fragmentShader: `
+          precision highp float;
+          varying vec2 vUV;
+          uniform sampler2D textureSampler;
+          uniform float uTime;
+          uniform float uIntensity;
+          void main(void) {
+            vec4 col = texture2D(textureSampler, vUV);
+            float scan = 0.92 + 0.08 * sin(vUV.y * 420.0 + uTime * 8.0);
+            vec3 tintShift = mix(col.rgb, col.rgb * vec3(1.12, 0.92, 1.18), 0.35 * uIntensity);
+            gl_FragColor = vec4(tintShift * scan, col.a);
+          }
+        `
+      };
+      applyJsonShaderConfig(sampleJson, "CyberScanlinePulse.json");
+    });
+
+    resetShaderBtn.addEventListener('click', resetJsonShaderToDefault);
+
     function openPcUI() {
       pcError.classList.add('hidden');
       pcModal.classList.remove('hidden');
@@ -1857,6 +2344,7 @@
 
       clearAllEntities();
       buildNeonCity();
+      applyGraphicsAndFobSettings();
 
       hudLocation.textContent = `SERVER ${target.id} (${target.mode.toUpperCase()})`;
       hudModeInfo.innerHTML = target.mode === 'onerunner'
@@ -1907,6 +2395,7 @@
       currentZone = 'HOUSE';
       clearAllEntities();
       buildSpawnHouse();
+      applyGraphicsAndFobSettings();
 
       hudLocation.textContent = "SAFEHOUSE APARTMENT";
       hudModeInfo.innerHTML = "Walk to your <b>GAMING PC</b> &amp; press <b>[E]</b> to connect to the Neon City";
@@ -1937,6 +2426,7 @@
     }
 
     buildSpawnHouse();
+    applyGraphicsAndFobSettings();
     renderServerList();
 
     let lastBroadcast = 0;
@@ -2021,7 +2511,8 @@
             }
           }
 
-          const targetFov = isSliding ? 1.18 : (sprinting ? 1.12 : 1.05);
+          const baseFovRad = getBaseFovRadians();
+          const targetFov = isSliding ? Math.min(2.3, baseFovRad + 0.13) : (sprinting ? Math.min(2.2, baseFovRad + 0.07) : baseFovRad);
           camera.fov += (targetFov - camera.fov) * Math.min(1, 10 * dt);
           threeCamera.fov = BABYLON.Tools.ToDegrees(camera.fov);
           threeCamera.updateProjectionMatrix();
@@ -2072,7 +2563,6 @@
             }
           }
 
-          // Smooth depenetration only when genuinely overlapping a collider volume
           for (const c of colliders) {
             if (headY > c.minY + 0.06 && feetY < c.maxY - 0.06) {
               if (actualX + playerRadius > c.minX && actualX - playerRadius < c.maxX &&
@@ -2153,7 +2643,6 @@
           selfRig.root.rotation.y = cameraYaw;
 
           if (!thirdPersonView) {
-            // Place full body slightly back from first-person eye so arms and full body are visible without blocking the lens
             const bodyBack = 0.55;
             const bodyX = actualX - Math.sin(cameraYaw) * bodyBack;
             const bodyZ = actualZ - Math.cos(cameraYaw) * bodyBack;
@@ -2208,7 +2697,6 @@
             targetCamZ = actualZ - dirZ * safeDist;
           }
 
-          // Clamp camera inside any collider
           const camRad = 0.28;
           for (const c of colliders) {
             if (targetCamY + camRad > c.minY && targetCamY - camRad < c.maxY &&
@@ -2325,8 +2813,6 @@
 
             const prevBX = b.x;
             const prevBZ = b.z;
-            const estVx = b.vx || 0;
-            const estVz = b.vz || 0;
 
             const isBotChaser = (srv.mode === 'infection' && b.role === 'infected') ||
                                 ((srv.mode === 'onerunner' || srv.mode === 'classic') && b.role === 'tagger');
@@ -2336,7 +2822,6 @@
             let desiredAngle = b.botAngle;
             let urgency = 0.92;
             let nearestThreatDist = Infinity;
-            let targetHeightDiff = 0;
 
             if (b.stunTimer <= 0) {
               if (isBotChaser) {
@@ -2356,8 +2841,6 @@
                 }
 
                 if (bestTarget) {
-                  targetHeightDiff = (bestTarget.y || 0) - b.y;
-                  // Casual cut-off / slight lead with occasional human-like angle drift
                   const leadTime = Math.min(0.45, bestDist / 26.0);
                   const predX = bestTarget.x + (bestTarget.vx || 0) * leadTime;
                   const predZ = bestTarget.z + (bestTarget.vz || 0) * leadTime;
@@ -2378,7 +2861,6 @@
                   desiredAngle = Math.atan2(aimX - b.x, aimZ - b.z) + Math.sin(nowMs * 0.003 + bIdx * 2) * 0.18;
                   urgency = bestDist < 10 ? 1.08 : 0.96;
 
-                  // Occasional slide
                   if (bestDist > 5 && bestDist < 9 && b.slideCd <= 0 && b.slideTimer <= 0 && b.y <= getBotSupportY(b.x, b.z, b.y) + 0.15 && Math.random() < dt * 0.9) {
                     b.slideTimer = 0.35;
                     b.slideCd = 2.8;
@@ -2537,7 +3019,6 @@
               }
             }
 
-            // Vertical physics, jump pads & rooftop/ledge landing
             b.vy = Math.max(-34, b.vy - 28 * dt);
             b.y += b.vy * dt;
             const floorY = getBotSupportY(b.x, b.z, b.y);
@@ -2556,7 +3037,6 @@
             b.vz = (b.z - prevBZ) / Math.max(dt, 0.001);
             b.ry = b.botAngle;
 
-            // Active AI tagging against the player when in range, not stunned, and not in 5s no-tag-backs
             if (b.stunTimer <= 0 && b.tagCd <= 0 && playerStunTimer <= 0 && srv.mode !== 'casual') {
               const blockedByNoTagBack = (b.noTagBackTimer > 0 && b.lastTaggedById === clientId) ||
                                        (selfNoTagBackTimer > 0 && lastTaggedEntityId === b.id);
@@ -2599,7 +3079,6 @@
               }
             }
 
-            // Active AI-vs-AI tagging in non-casual modes with 5s no-tag-backs
             if (b.stunTimer <= 0 && b.tagCd <= 0 && srv.mode !== 'casual') {
               for (let oIdx = 0; oIdx < srv.bots.length; oIdx++) {
                 if (oIdx === bIdx) continue;
@@ -2708,12 +3187,13 @@
         }
 
         const posAttr = sparkGeo.getAttribute('position');
-        for (let i = 0; i < sparkCount; i++) {
+        const activeSparks = Math.max(0, Math.min(sparkCount, settingsState.sparksCount));
+        for (let i = 0; i < activeSparks; i++) {
           let py = posAttr.getY(i) - 24 * dt;
           if (py < 0) py = 85;
           posAttr.setY(i, py);
         }
-        posAttr.needsUpdate = true;
+        if (activeSparks > 0) posAttr.needsUpdate = true;
 
         scene.render();
         threeRenderer.render(threeScene, threeCamera);
