@@ -1,0 +1,2733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SLIDEX</title>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050510;
+    }
+
+    #renderCanvas, #threeOverlay {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #renderCanvas {
+      z-index: 1;
+    }
+
+    #threeOverlay {
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #crosshair {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #00f3ff;
+      font-size: 22px;
+      font-weight: bold;
+      pointer-events: none;
+      text-shadow: 0 0 8px #00f3ff;
+      z-index: 12;
+    }
+
+    #centerLockedCursor {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: 18px;
+      margin-left: -9px;
+      margin-top: -9px;
+      border-radius: 50%;
+      border: 2px solid #00f3ff;
+      background: rgba(0, 243, 255, 0.25);
+      box-shadow: 0 0 12px #00f3ff, inset 0 0 6px #ffffff;
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    #escMenuOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 5, 16, 0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 80;
+    }
+
+    .esc-card {
+      width: 380px;
+      max-width: 92vw;
+      background: #0b1024;
+      border: 2px solid #ff007f;
+      box-shadow: 0 0 32px rgba(255, 0, 127, 0.45), 0 0 18px rgba(0, 243, 255, 0.25);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      color: #e6f9ff;
+    }
+
+    .esc-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #00f3ff;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+    }
+
+    .esc-sub {
+      font-size: 13px;
+      color: #b8c7e8;
+      margin-bottom: 20px;
+    }
+
+    .esc-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .esc-btn-resume {
+      background: #00f3ff;
+      color: #050510;
+      border: none;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .esc-btn-close {
+      background: #ff007f;
+      color: #ffffff;
+      border: none;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .hud-panel {
+      position: fixed;
+      background: rgba(8, 12, 28, 0.85);
+      border: 1px solid #00f3ff;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.25);
+      color: #e0f7ff;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+      pointer-events: none;
+      z-index: 12;
+    }
+
+    #hudTopLeft {
+      top: 16px;
+      left: 16px;
+    }
+
+    #hudTopRight {
+      top: 16px;
+      right: 16px;
+      text-align: right;
+    }
+
+    .hud-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ff007f;
+      text-shadow: 0 0 8px rgba(255, 0, 127, 0.7);
+      letter-spacing: 1px;
+    }
+
+    .hud-subtitle {
+      font-weight: 700;
+      color: #00f3ff;
+      margin-bottom: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .role-runner { background: #00f3ff; color: #050510; box-shadow: 0 0 10px #00f3ff; }
+    .role-infected { background: #39ff14; color: #050510; box-shadow: 0 0 10px #39ff14; }
+    .role-survivor { background: #00a2ff; color: #fff; }
+    .role-tagger { background: #ff0055; color: #fff; box-shadow: 0 0 10px #ff0055; }
+
+    #hudScore {
+      margin-top: 4px;
+      font-weight: bold;
+      color: #ffe600;
+    }
+
+    #interactPrompt {
+      position: fixed;
+      bottom: 22%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.88);
+      border: 1px solid #ff007f;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 15px;
+      box-shadow: 0 0 15px #ff007f;
+      z-index: 16;
+    }
+
+    #eventBanner {
+      position: fixed;
+      top: 14%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 0, 127, 0.92);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 16px;
+      box-shadow: 0 0 20px #ff007f;
+      z-index: 25;
+    }
+
+    #debugErrorBanner {
+      position: fixed;
+      bottom: 14px;
+      left: 14px;
+      background: rgba(140, 10, 35, 0.92);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 5px;
+      font-size: 12px;
+      max-width: 75vw;
+      z-index: 99;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* PC Modal */
+    #pcModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 5, 15, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .pc-window {
+      width: 680px;
+      max-width: 95vw;
+      background: #0b1024;
+      border: 2px solid #00f3ff;
+      box-shadow: 0 0 35px rgba(0, 243, 255, 0.4);
+      border-radius: 8px;
+      overflow: hidden;
+      color: #e6f9ff;
+    }
+
+    .pc-header {
+      background: linear-gradient(90deg, #ff007f, #5900ff);
+      padding: 12px 18px;
+      font-weight: 800;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pc-header button {
+      background: #0b1024;
+      color: #fff;
+      border: 1px solid #fff;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .pc-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .pc-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .pc-row label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #00f3ff;
+    }
+
+    input[type="text"] {
+      background: #050814;
+      border: 1px solid #00f3ff;
+      color: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .mode-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 10px;
+      background: #131b3a;
+      border: 1px solid #3a4b8c;
+      color: #a8b8f0;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: 0.2s;
+    }
+
+    .mode-btn.active {
+      background: #ff007f;
+      border-color: #ff66b2;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(255, 0, 127, 0.6);
+    }
+
+    .pc-mode-desc {
+      background: rgba(0, 243, 255, 0.08);
+      border-left: 3px solid #00f3ff;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .server-input-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .server-input-group input {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .btn-primary {
+      background: #00f3ff;
+      color: #050510;
+      border: none;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .btn-secondary {
+      background: #5900ff;
+      color: #fff;
+      border: none;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .pc-error {
+      color: #ff4d6d;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .pc-server-list-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffe600;
+      margin-top: 4px;
+    }
+
+    .server-list {
+      max-height: 170px;
+      overflow-y: auto;
+      border: 1px solid #233066;
+      background: #060918;
+      border-radius: 4px;
+    }
+
+    .server-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-bottom: 1px solid #161f45;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .server-item:hover {
+      background: rgba(0, 243, 255, 0.15);
+    }
+
+    #leaderboardBox hr {
+      border-color: #233066;
+      margin: 8px 0;
+    }
+
+    #leaderboardList div {
+      font-size: 12px;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  <canvas id="threeOverlay"></canvas>
+
+  <div id="crosshair">+</div>
+  <div id="centerLockedCursor" class="hidden"></div>
+
+  <div id="escMenuOverlay" class="hidden">
+    <div class="esc-card">
+      <div class="esc-title">PAUSED // ESC MENU</div>
+      <div class="esc-sub" id="escStatusText">Mouse unlocked. Choose an option below:</div>
+      <div class="esc-actions">
+        <button id="escResumeBtn" class="esc-btn-resume">RESUME (CLOSE MENU &amp; LOCK MOUSE)</button>
+        <button id="escCloseTabBtn" class="esc-btn-close">CLOSE TAB</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hudTopLeft" class="hud-panel">
+    <div class="hud-title">NEON STRIDE // <span id="hudLocation">SAFEHOUSE APARTMENT</span></div>
+    <div id="hudModeInfo">Walk to your <b>GAMING PC</b> &amp; press <b>[E]</b> to connect to the Neon City</div>
+    <div id="hudRoleBadge" class="badge hidden">ROLE: RUNNER</div>
+    <div id="hudScore" class="hidden">SCORE: 0</div>
+  </div>
+
+  <div id="hudTopRight" class="hud-panel">
+    <div class="hud-subtitle">CONTROLS</div>
+    <div><b>WASD</b> Move | <b>Q / Arrows</b> or <b>Drag/Lock Mouse</b> Turn</div>
+    <div><b>SPACE</b> Jump / Double Jump | <b>C</b> Slide</div>
+    <div><b>SHIFT</b> Sprint / Wall-Run | <b>V</b> Body Cam</div>
+    <div><b>E</b> Interact / Tag Player | <b>H</b> House</div>
+    <div id="leaderboardBox" class="hidden">
+      <hr />
+      <div class="hud-subtitle">SERVER PLAYERS</div>
+      <div id="leaderboardList"></div>
+    </div>
+  </div>
+
+  <div id="eventBanner" class="hidden"></div>
+  <div id="interactPrompt" class="hidden">Press <b>[E]</b> to use Gaming PC</div>
+  <div id="debugErrorBanner" class="hidden"></div>
+
+  <div id="pcModal" class="hidden">
+    <div class="pc-window">
+      <div class="pc-header">
+        <span>CYBER-OS v9.4 // SERVER BROWSER &amp; MATCHMAKING</span>
+        <button id="closePcBtn">X</button>
+      </div>
+      <div class="pc-body">
+        <div class="pc-row">
+          <label>RUNNER CALLSIGN:</label>
+          <input type="text" id="playerNameInput" value="NeonRunner" maxlength="16" />
+        </div>
+
+        <div class="pc-row">
+          <label>SELECT GAMEMODE:</label>
+          <div class="mode-buttons">
+            <button class="mode-btn active" data-mode="casual">CASUAL PARKOUR</button>
+            <button class="mode-btn" data-mode="classic">CLASSIC TAG</button>
+            <button class="mode-btn" data-mode="infection">INFECTION</button>
+            <button class="mode-btn" data-mode="onerunner">ONE RUNNER</button>
+          </div>
+        </div>
+
+        <div class="pc-mode-desc" id="modeDesc">
+          <b>CASUAL:</b> Free-roam parkour across neon skyscrapers, train stations, shops, and rooftops with no tag pressure.
+        </div>
+
+        <div class="pc-row">
+          <label>SERVER ID (Leave blank or click Auto for Most Popular Non-Full):</label>
+          <div class="server-input-group">
+            <input type="text" id="serverIdInput" placeholder="e.g. NEON-01 or leave empty for AUTO" />
+            <button id="joinAutoBtn" class="btn-primary">JOIN MOST POPULAR (NOT FULL)</button>
+            <button id="joinSpecificBtn" class="btn-secondary">JOIN SERVER ID</button>
+          </div>
+        </div>
+
+        <div id="pcError" class="pc-error hidden"></div>
+
+        <div class="pc-server-list-header">ACTIVE CITY SERVERS (CLICK TO SELECT ID)</div>
+        <div id="serverListContainer" class="server-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const debugBanner = document.getElementById('debugErrorBanner');
+    function reportRuntimeError(err) {
+      console.error(err);
+      if (debugBanner) {
+        debugBanner.textContent = "Runtime note: " + (err && err.message ? err.message : String(err));
+        debugBanner.classList.remove('hidden');
+      }
+    }
+    window.addEventListener('error', (e) => reportRuntimeError(e.error || e.message));
+
+    const canvas = document.getElementById('renderCanvas');
+    const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true });
+
+    const threeCanvas = document.getElementById('threeOverlay');
+    const threeRenderer = new THREE.WebGLRenderer({ canvas: threeCanvas, alpha: true, antialias: true });
+    threeRenderer.setClearColor(0x000000, 0);
+    threeRenderer.setSize(window.innerWidth, window.innerHeight);
+    threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const threeScene = new THREE.Scene();
+    const threeCamera = new THREE.PerspectiveCamera(60.1, window.innerWidth / window.innerHeight, 0.1, 400);
+    threeCamera.rotation.order = 'YXZ';
+
+    const sparkCount = 650;
+    const sparkPositions = new Float32Array(sparkCount * 3);
+    const sparkColors = new Float32Array(sparkCount * 3);
+    for (let i = 0; i < sparkCount; i++) {
+      sparkPositions[i * 3] = (Math.random() - 0.5) * 200;
+      sparkPositions[i * 3 + 1] = Math.random() * 85;
+      sparkPositions[i * 3 + 2] = (Math.random() - 0.5) * 200;
+
+      const isCyan = Math.random() > 0.45;
+      sparkColors[i * 3] = isCyan ? 0.0 : 1.0;
+      sparkColors[i * 3 + 1] = isCyan ? 0.95 : 0.05;
+      sparkColors[i * 3 + 2] = isCyan ? 1.0 : 0.5;
+    }
+    const sparkGeo = new THREE.BufferGeometry();
+    sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
+    sparkGeo.setAttribute('color', new THREE.BufferAttribute(sparkColors, 3));
+    const sparkMat = new THREE.PointsMaterial({ size: 0.45, vertexColors: true, transparent: true, opacity: 0.72 });
+    const sparkPoints = new THREE.Points(sparkGeo, sparkMat);
+    threeScene.add(sparkPoints);
+
+    const auraGeo = new THREE.TorusGeometry(0.95, 0.035, 10, 40);
+    auraGeo.rotateX(Math.PI / 2);
+    const auraMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.45 });
+    const playerAuraRing = new THREE.Mesh(auraGeo, auraMat);
+    threeScene.add(playerAuraRing);
+
+    let channel = null;
+    try {
+      if ('BroadcastChannel' in window) {
+        channel = new BroadcastChannel('neon_stride_multiplayer_v5');
+      }
+    } catch (_) {}
+
+    const clientId = 'p_' + Math.random().toString(36).substring(2, 9);
+    const MAX_PLAYERS = 12;
+    const botNames = ['Cipher', 'Vex', 'Kairo', 'Nyx', 'Jett', 'Echo', 'Glitch', 'Pulse', 'Zero', 'Nova'];
+
+    const servers = {
+      'NEON-01': { id: 'NEON-01', mode: 'casual', max: MAX_PLAYERS, bots: [] },
+      'NEON-02': { id: 'NEON-02', mode: 'casual', max: MAX_PLAYERS, bots: [] },
+      'TAG-01': { id: 'TAG-01', mode: 'classic', max: MAX_PLAYERS, bots: [] },
+      'INF-ALPHA': { id: 'INF-ALPHA', mode: 'infection', max: MAX_PLAYERS, bots: [] },
+      'INF-BETA': { id: 'INF-BETA', mode: 'infection', max: MAX_PLAYERS, bots: [] },
+      'RUN-PRIME': { id: 'RUN-PRIME', mode: 'onerunner', max: MAX_PLAYERS, bots: [] },
+      'RUN-APEX': { id: 'RUN-APEX', mode: 'onerunner', max: MAX_PLAYERS, bots: [] }
+    };
+
+    const livePeers = {};
+
+    function seedBotsForServer(srv, count) {
+      srv.bots = [];
+      for (let i = 0; i < count; i++) {
+        srv.bots.push({
+          id: `bot_${srv.id}_${i}`,
+          name: `[AI] ${botNames[i % botNames.length]}`,
+          isBot: true,
+          x: (Math.random() - 0.5) * 140,
+          y: 0,
+          z: (Math.random() - 0.5) * 140,
+          ry: Math.random() * Math.PI * 2,
+          role: 'runner',
+          score: Math.floor(Math.random() * 140),
+          botAngle: Math.random() * Math.PI * 2,
+          botTimer: 0.5 + Math.random() * 2,
+          animPhase: Math.random() * Math.PI * 2
+        });
+      }
+      normalizeServerRoles(srv);
+    }
+
+    seedBotsForServer(servers['NEON-01'], 4);
+    seedBotsForServer(servers['NEON-02'], 2);
+    seedBotsForServer(servers['TAG-01'], 4);
+    seedBotsForServer(servers['INF-ALPHA'], 5);
+    seedBotsForServer(servers['INF-BETA'], 1);
+    seedBotsForServer(servers['RUN-PRIME'], 6);
+    seedBotsForServer(servers['RUN-APEX'], 3);
+
+    function getPeersInRoom(srvId) {
+      const now = Date.now();
+      return Object.values(livePeers).filter(p => p.serverId === srvId && (now - p.lastSeen) < 4000);
+    }
+
+    function getRoomCount(srvId) {
+      const srv = servers[srvId];
+      if (!srv) return 0;
+      return srv.bots.length + getPeersInRoom(srvId).length;
+    }
+
+    function normalizeServerRoles(srv) {
+      const peers = getPeersInRoom(srv.id);
+      const all = [...srv.bots, ...peers];
+      if (all.length === 0) return;
+
+      if (srv.mode === 'casual') {
+        all.forEach(p => { p.role = 'runner'; });
+      } else if (srv.mode === 'classic') {
+        const itPlayers = all.filter(p => p.role === 'tagger');
+        if (itPlayers.length !== 1) {
+          all.forEach(p => { p.role = 'runner'; });
+          const chosen = all[Math.floor(Math.random() * all.length)];
+          chosen.role = 'tagger';
+        }
+      } else if (srv.mode === 'infection') {
+        const infected = all.filter(p => p.role === 'infected');
+        if (infected.length === 0 || infected.length === all.length) {
+          all.forEach(p => { p.role = 'survivor'; });
+          const alpha = all[Math.floor(Math.random() * all.length)];
+          alpha.role = 'infected';
+        }
+      } else if (srv.mode === 'onerunner') {
+        const runners = all.filter(p => p.role === 'runner');
+        if (runners.length !== 1) {
+          all.forEach(p => { p.role = 'tagger'; });
+          const chosen = all[Math.floor(Math.random() * all.length)];
+          chosen.role = 'runner';
+        }
+      }
+    }
+
+    let currentZone = 'HOUSE';
+    let selectedMode = 'casual';
+    let currentRoomId = null;
+    let selfRole = 'runner';
+    let selfScore = 0;
+    let selfName = 'NeonRunner';
+    let lastTagTime = 0;
+    let selfNoTagBackTimer = 0;
+    let lastTaggedEntityId = null;
+    let thirdPersonView = false;
+
+    const keys = {};
+    let playerPosX = 0;
+    let playerPosZ = -2;
+    let playerFootY = 0;
+    let velocityY = 0;
+    let isGrounded = false;
+    let jumpCount = 0;
+    let isSliding = false;
+    let slideBurstTimer = 0;
+    let slideCooldownTimer = 0;
+    let wallRunSide = 0;
+    let playerStunTimer = 0;
+
+    let cameraYaw = 0;
+    let cameraPitch = 0.05;
+    let walkAnimPhase = 0;
+
+    let isPointerDragging = false;
+    let lastPointerX = null;
+    let lastPointerY = null;
+    let pointerLockGraceTimer = 0;
+
+    const pcModal = document.getElementById('pcModal');
+    const interactPrompt = document.getElementById('interactPrompt');
+    const hudLocation = document.getElementById('hudLocation');
+    const hudModeInfo = document.getElementById('hudModeInfo');
+    const hudRoleBadge = document.getElementById('hudRoleBadge');
+    const hudScore = document.getElementById('hudScore');
+    const leaderboardBox = document.getElementById('leaderboardBox');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const eventBanner = document.getElementById('eventBanner');
+    const pcError = document.getElementById('pcError');
+
+    function showEvent(msg) {
+      eventBanner.textContent = msg;
+      eventBanner.classList.remove('hidden');
+      clearTimeout(showEvent._t);
+      showEvent._t = setTimeout(() => eventBanner.classList.add('hidden'), 3500);
+    }
+
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.025, 0.03, 0.075, 1);
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.004;
+    scene.fogColor = new BABYLON.Color3(0.03, 0.035, 0.085);
+
+    const camera = new BABYLON.FreeCamera("playerCam", new BABYLON.Vector3(0, 2.0, -4), scene);
+    camera.rotationQuaternion = null;
+    camera.rotation.order = "YXZ";
+    camera.inputs.clear();
+    camera.minZ = 0.1;
+    camera.fov = 1.05;
+
+    const hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0.2, 1, -0.2), scene);
+    hemiLight.intensity = 0.78;
+    hemiLight.diffuse = new BABYLON.Color3(0.65, 0.78, 1.0);
+    hemiLight.groundColor = new BABYLON.Color3(0.22, 0.16, 0.28);
+
+    const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-0.45, -1, 0.35), scene);
+    dirLight.position = new BABYLON.Vector3(60, 110, -50);
+    dirLight.intensity = 1.2;
+    dirLight.diffuse = new BABYLON.Color3(1.0, 0.94, 0.86);
+
+    function makeDynamicTexture(name, w, h, drawFn, uScale = 1, vScale = 1) {
+      const dt = new BABYLON.DynamicTexture(name, { width: w, height: h }, scene, false);
+      const ctx = dt.getContext();
+      if (ctx && typeof drawFn === 'function') {
+        drawFn(ctx, w, h);
+      }
+      dt.uScale = uScale;
+      dt.vScale = vScale;
+      dt.update();
+      return dt;
+    }
+
+    function makeWoodFloorTexture(name) {
+      return makeDynamicTexture(name, 512, 512, (ctx) => {
+        const plankH = 64;
+        for (let row = 0; row < 8; row++) {
+          const y = row * plankH;
+          const shade = 52 + ((row * 17) % 18);
+          ctx.fillStyle = `rgb(${shade + 28}, ${shade + 8}, ${shade - 8})`;
+          ctx.fillRect(0, y, 512, plankH);
+
+          ctx.strokeStyle = 'rgba(20, 10, 4, 0.35)';
+          ctx.lineWidth = 1.5;
+          for (let g = 0; g < 6; g++) {
+            ctx.beginPath();
+            const gy = y + 8 + g * 9;
+            ctx.moveTo(0, gy);
+            ctx.bezierCurveTo(170, gy + Math.sin(row + g) * 5, 340, gy - Math.cos(row + g) * 5, 512, gy);
+            ctx.stroke();
+          }
+
+          ctx.fillStyle = '#140c07';
+          ctx.fillRect(0, y, 512, 2);
+          const jointX = ((row * 160) + 90) % 440 + 35;
+          ctx.fillRect(jointX, y, 2, plankH);
+        }
+      }, 4, 4);
+    }
+
+    function makePlasterWallTexture(name, baseHex = '#2a3248') {
+      return makeDynamicTexture(name, 512, 512, (ctx) => {
+        ctx.fillStyle = baseHex;
+        ctx.fillRect(0, 0, 512, 512);
+
+        for (let i = 0; i < 3000; i++) {
+          const x = Math.random() * 512;
+          const y = Math.random() * 512;
+          const r = 0.8 + Math.random() * 2.0;
+          const alpha = 0.04 + Math.random() * 0.08;
+          ctx.fillStyle = Math.random() > 0.5 ? `rgba(255,255,255,${alpha})` : `rgba(5,8,16,${alpha})`;
+          ctx.fillRect(x, y, r, r);
+        }
+
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, 510, 510);
+        ctx.beginPath();
+        ctx.moveTo(0, 256);
+        ctx.lineTo(512, 256);
+        ctx.stroke();
+      }, 2, 1);
+    }
+
+    function makeAsphaltTexture(name) {
+      return makeDynamicTexture(name, 512, 512, (ctx) => {
+        ctx.fillStyle = '#141720';
+        ctx.fillRect(0, 0, 512, 512);
+
+        for (let i = 0; i < 5000; i++) {
+          const x = Math.random() * 512;
+          const y = Math.random() * 512;
+          const s = 1 + Math.random() * 2;
+          const v = 22 + Math.floor(Math.random() * 38);
+          ctx.fillStyle = `rgba(${v},${v + 2},${v + 6},0.45)`;
+          ctx.fillRect(x, y, s, s);
+        }
+
+        ctx.strokeStyle = 'rgba(5, 6, 10, 0.65)';
+        ctx.lineWidth = 1.4;
+        for (let c = 0; c < 14; c++) {
+          let cx = Math.random() * 512;
+          let cy = Math.random() * 512;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          for (let seg = 0; seg < 6; seg++) {
+            cx += (Math.random() - 0.5) * 45;
+            cy += (Math.random() - 0.5) * 45;
+            ctx.lineTo(cx, cy);
+          }
+          ctx.stroke();
+        }
+      }, 36, 36);
+    }
+
+    function makeSkyscraperFacadeTexture(name, windowGlowHex = '#00f3ff') {
+      return makeDynamicTexture(name, 512, 1024, (ctx) => {
+        const grad = ctx.createLinearGradient(0, 0, 512, 0);
+        grad.addColorStop(0, '#101626');
+        grad.addColorStop(0.5, '#1b243b');
+        grad.addColorStop(1, '#0e1320');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 1024);
+
+        const cols = 8;
+        const rows = 24;
+        const padX = 14;
+        const padY = 10;
+        const cellW = 512 / cols;
+        const cellH = 1024 / rows;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = c * cellW + padX * 0.5;
+            const y = r * cellH + padY * 0.5;
+            const w = cellW - padX;
+            const h = cellH - padY;
+
+            const rnd = Math.random();
+            if (rnd < 0.24) {
+              ctx.fillStyle = Math.random() > 0.35 ? 'rgba(220, 242, 255, 0.78)' : windowGlowHex + 'CC';
+            } else if (rnd < 0.65) {
+              ctx.fillStyle = '#1b2d47';
+            } else {
+              ctx.fillStyle = '#0a0f1c';
+            }
+            ctx.fillRect(x, y, w, h);
+
+            ctx.strokeStyle = '#070a12';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, w, h);
+          }
+
+          ctx.fillStyle = '#090d18';
+          ctx.fillRect(0, r * cellH, 512, 3);
+        }
+      }, 1, 2.5);
+    }
+
+    function makeBrushedMetalTexture(name, baseHex = '#374151') {
+      return makeDynamicTexture(name, 256, 256, (ctx) => {
+        ctx.fillStyle = baseHex;
+        ctx.fillRect(0, 0, 256, 256);
+
+        for (let y = 0; y < 256; y++) {
+          const alpha = 0.04 + Math.random() * 0.08;
+          ctx.fillStyle = y % 2 === 0 ? `rgba(255,255,255,${alpha})` : `rgba(0,0,0,${alpha})`;
+          ctx.fillRect(0, y, 256, 1);
+        }
+      }, 2, 2);
+    }
+
+    function makeShopSignTexture(name, titleText, subText, accentHex) {
+      return makeDynamicTexture(name, 512, 128, (ctx) => {
+        ctx.fillStyle = '#090d1a';
+        ctx.fillRect(0, 0, 512, 128);
+
+        ctx.strokeStyle = accentHex;
+        ctx.lineWidth = 6;
+        ctx.strokeRect(6, 6, 500, 116);
+
+        ctx.fillStyle = accentHex;
+        ctx.font = '900 42px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(titleText, 256, 52);
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '700 20px Segoe UI';
+        ctx.fillText(subText, 256, 94);
+      }, 1, 1);
+    }
+
+    function createNeonMat(name, hexColor, emissiveIntensity = 0.85) {
+      const mat = new BABYLON.StandardMaterial(name, scene);
+      const c = BABYLON.Color3.FromHexString(hexColor);
+      mat.diffuseColor = c.scale(0.35);
+      mat.emissiveColor = c.scale(emissiveIntensity);
+      return mat;
+    }
+
+    const matCyan = createNeonMat("cyan", "#00f3ff", 0.85);
+    const matPink = createNeonMat("pink", "#ff007f", 0.85);
+    const matPurple = createNeonMat("purple", "#9d00ff", 0.75);
+    const matYellow = createNeonMat("yellow", "#ffe600", 0.85);
+    const matGreen = createNeonMat("green", "#39ff14", 0.85);
+
+    const matWoodFloor = new BABYLON.StandardMaterial("woodFloorMat", scene);
+    matWoodFloor.diffuseTexture = makeWoodFloorTexture("woodFloorTex");
+    matWoodFloor.specularColor = new BABYLON.Color3(0.25, 0.2, 0.15);
+
+    const matWallPlaster = new BABYLON.StandardMaterial("wallPlasterMat", scene);
+    matWallPlaster.diffuseTexture = makePlasterWallTexture("wallPlasterTex", "#2d3748");
+    matWallPlaster.specularColor = new BABYLON.Color3(0.12, 0.12, 0.16);
+
+    const matDarkTrim = new BABYLON.StandardMaterial("darkTrimMat", scene);
+    matDarkTrim.diffuseTexture = makeBrushedMetalTexture("darkTrimTex", "#1e293b");
+    matDarkTrim.specularColor = new BABYLON.Color3(0.35, 0.35, 0.45);
+
+    const matFabric = new BABYLON.StandardMaterial("fabricMat", scene);
+    matFabric.diffuseTexture = makePlasterWallTexture("fabricTex", "#4c1d95");
+
+    const matRoad = new BABYLON.StandardMaterial("roadMat", scene);
+    matRoad.diffuseTexture = makeAsphaltTexture("roadTex");
+    matRoad.specularColor = new BABYLON.Color3(0.18, 0.18, 0.22);
+
+    const matFacadeCyan = new BABYLON.StandardMaterial("facadeCyan", scene);
+    matFacadeCyan.diffuseTexture = makeSkyscraperFacadeTexture("facCyanTex", "#00f3ff");
+    matFacadeCyan.specularColor = new BABYLON.Color3(0.3, 0.35, 0.45);
+
+    const matFacadePink = new BABYLON.StandardMaterial("facadePink", scene);
+    matFacadePink.diffuseTexture = makeSkyscraperFacadeTexture("facPinkTex", "#ff007f");
+    matFacadePink.specularColor = new BABYLON.Color3(0.3, 0.35, 0.45);
+
+    const matFacadeAmber = new BABYLON.StandardMaterial("facadeAmber", scene);
+    matFacadeAmber.diffuseTexture = makeSkyscraperFacadeTexture("facAmberTex", "#fbbf24");
+    matFacadeAmber.specularColor = new BABYLON.Color3(0.3, 0.35, 0.45);
+
+    const matSkin = new BABYLON.StandardMaterial("skinMat", scene);
+    matSkin.diffuseTexture = makePlasterWallTexture("skinTex", "#d69e7e");
+    matSkin.specularColor = new BABYLON.Color3(0.22, 0.18, 0.16);
+
+    const matJacket = new BABYLON.StandardMaterial("jacketMat", scene);
+    matJacket.diffuseTexture = makeBrushedMetalTexture("jacketTex", "#1e293b");
+    matJacket.specularColor = new BABYLON.Color3(0.3, 0.3, 0.35);
+
+    const matPants = new BABYLON.StandardMaterial("pantsMat", scene);
+    matPants.diffuseTexture = makePlasterWallTexture("pantsTex", "#111827");
+
+    let colliders = [];
+    let houseMeshes = [];
+    let cityMeshes = [];
+    let pcMonitorMesh = null;
+    let trainMesh = null;
+    let trainAngle = 0;
+
+    function registerBox(mesh, list, isJumpPad = false, isWallRunnable = true) {
+      mesh.computeWorldMatrix(true);
+      const bb = mesh.getBoundingInfo().boundingBox;
+      colliders.push({
+        minX: bb.minimumWorld.x,
+        maxX: bb.maximumWorld.x,
+        minY: bb.minimumWorld.y,
+        maxY: bb.maximumWorld.y,
+        minZ: bb.minimumWorld.z,
+        maxZ: bb.maximumWorld.z,
+        isJumpPad,
+        isWallRunnable
+      });
+      list.push(mesh);
+      return mesh;
+    }
+
+    function clearMeshes(list) {
+      while (list.length > 0) {
+        const m = list.pop();
+        if (m) m.dispose();
+      }
+    }
+
+    function createHumanRig(prefix, accentMat, isSelf = false) {
+      const root = new BABYLON.TransformNode(prefix + "_root", scene);
+
+      const hips = new BABYLON.TransformNode(prefix + "_hips", scene);
+      hips.parent = root;
+      hips.position.y = 0.95;
+
+      const torso = BABYLON.MeshBuilder.CreateBox(prefix + "_torso", { width: 0.56, height: 0.72, depth: 0.28 }, scene);
+      torso.parent = hips;
+      torso.position.y = 0.36;
+      torso.material = matJacket;
+
+      const stripe = BABYLON.MeshBuilder.CreateBox(prefix + "_stripe", { width: 0.58, height: 0.1, depth: 0.30 }, scene);
+      stripe.parent = torso;
+      stripe.position.y = 0.12;
+      stripe.material = accentMat;
+
+      const neck = new BABYLON.TransformNode(prefix + "_neck", scene);
+      neck.parent = torso;
+      neck.position.y = 0.38;
+
+      const head = BABYLON.MeshBuilder.CreateSphere(prefix + "_head", { diameter: 0.34, segments: 12 }, scene);
+      head.parent = neck;
+      head.position.y = 0.17;
+      head.material = matSkin;
+
+      const visor = BABYLON.MeshBuilder.CreateBox(prefix + "_visor", { width: 0.30, height: 0.08, depth: 0.12 }, scene);
+      visor.parent = head;
+      visor.position.set(0, 0.02, 0.14);
+      visor.material = accentMat;
+
+      const leftArmPivot = new BABYLON.TransformNode(prefix + "_lArmP", scene);
+      leftArmPivot.parent = torso;
+      leftArmPivot.position.set(-0.37, 0.28, 0);
+      const leftArm = BABYLON.MeshBuilder.CreateBox(prefix + "_lArm", { width: 0.16, height: 0.62, depth: 0.16 }, scene);
+      leftArm.parent = leftArmPivot;
+      leftArm.position.y = -0.28;
+      leftArm.material = matJacket;
+
+      const rightArmPivot = new BABYLON.TransformNode(prefix + "_rArmP", scene);
+      rightArmPivot.parent = torso;
+      rightArmPivot.position.set(0.37, 0.28, 0);
+      const rightArm = BABYLON.MeshBuilder.CreateBox(prefix + "_rArm", { width: 0.16, height: 0.62, depth: 0.16 }, scene);
+      rightArm.parent = rightArmPivot;
+      rightArm.position.y = -0.28;
+      rightArm.material = matJacket;
+
+      const leftLegPivot = new BABYLON.TransformNode(prefix + "_lLegP", scene);
+      leftLegPivot.parent = hips;
+      leftLegPivot.position.set(-0.15, 0, 0);
+      const leftLeg = BABYLON.MeshBuilder.CreateBox(prefix + "_lLeg", { width: 0.19, height: 0.84, depth: 0.21 }, scene);
+      leftLeg.parent = leftLegPivot;
+      leftLeg.position.y = -0.42;
+      leftLeg.material = matPants;
+
+      const leftShoe = BABYLON.MeshBuilder.CreateBox(prefix + "_lShoe", { width: 0.21, height: 0.12, depth: 0.34 }, scene);
+      leftShoe.parent = leftLeg;
+      leftShoe.position.set(0, -0.42, 0.06);
+      leftShoe.material = accentMat;
+
+      const rightLegPivot = new BABYLON.TransformNode(prefix + "_rLegP", scene);
+      rightLegPivot.parent = hips;
+      rightLegPivot.position.set(0.15, 0, 0);
+      const rightLeg = BABYLON.MeshBuilder.CreateBox(prefix + "_rLeg", { width: 0.19, height: 0.84, depth: 0.21 }, scene);
+      rightLeg.parent = rightLegPivot;
+      rightLeg.position.y = -0.42;
+      rightLeg.material = matPants;
+
+      const rightShoe = BABYLON.MeshBuilder.CreateBox(prefix + "_rShoe", { width: 0.21, height: 0.12, depth: 0.34 }, scene);
+      rightShoe.parent = rightLeg;
+      rightShoe.position.set(0, -0.42, 0.06);
+      rightShoe.material = accentMat;
+
+      if (isSelf) {
+        root.scaling.setAll(0.85);
+        root.setEnabled(true);
+      }
+
+      return {
+        root, hips, torso, head,
+        leftArmPivot, rightArmPivot,
+        leftLegPivot, rightLegPivot,
+        stripe, visor, leftShoe, rightShoe,
+        leftArm, rightArm
+      };
+    }
+
+    function animateHumanRig(rig, phase, speedRatio, grounded, sliding, tagSwingAmount = 0) {
+      if (sliding) {
+        rig.hips.position.y = 0.42;
+        rig.torso.rotation.x = -0.75;
+        rig.leftLegPivot.rotation.x = 1.25;
+        rig.rightLegPivot.rotation.x = 0.45;
+        rig.leftArmPivot.rotation.x = -0.5 - tagSwingAmount * 1.1;
+        rig.rightArmPivot.rotation.x = 0.6 - tagSwingAmount * 1.35;
+        return;
+      }
+
+      rig.hips.position.y = 0.95 + Math.abs(Math.sin(phase * 2)) * 0.05 * speedRatio;
+      rig.torso.rotation.x = 0.14 * speedRatio;
+
+      if (!grounded) {
+        rig.leftLegPivot.rotation.x = -0.55;
+        rig.rightLegPivot.rotation.x = 0.45;
+        rig.leftArmPivot.rotation.x = -0.85 - tagSwingAmount * 1.0;
+        rig.rightArmPivot.rotation.x = -0.65 - tagSwingAmount * 1.35;
+      } else {
+        const swing = Math.sin(phase) * (0.35 + 0.75 * speedRatio);
+        rig.leftLegPivot.rotation.x = swing;
+        rig.rightLegPivot.rotation.x = -swing;
+        const runArmSwing = Math.sin(phase) * (0.25 + 0.95 * speedRatio);
+        rig.leftArmPivot.rotation.x = -runArmSwing - tagSwingAmount * 0.85;
+        rig.rightArmPivot.rotation.x = runArmSwing - tagSwingAmount * 1.45;
+      }
+    }
+
+    const selfRig = createHumanRig("selfBody", matCyan, true);
+
+    function buildSpawnHouse() {
+      colliders = [];
+      clearMeshes(houseMeshes);
+      clearMeshes(cityMeshes);
+
+      const floor = BABYLON.MeshBuilder.CreateBox("houseFloor", { width: 16, height: 0.5, depth: 16 }, scene);
+      floor.position.set(0, -0.25, 0);
+      floor.material = matWoodFloor;
+      registerBox(floor, houseMeshes);
+
+      const ceiling = BABYLON.MeshBuilder.CreateBox("houseCeil", { width: 16, height: 0.5, depth: 16 }, scene);
+      ceiling.position.set(0, 6.25, 0);
+      ceiling.material = matDarkTrim;
+      registerBox(ceiling, houseMeshes);
+
+      const wallN = BABYLON.MeshBuilder.CreateBox("wallN", { width: 16, height: 6, depth: 0.5 }, scene);
+      wallN.position.set(0, 3, 8);
+      wallN.material = matWallPlaster;
+      registerBox(wallN, houseMeshes);
+
+      const wallS = BABYLON.MeshBuilder.CreateBox("wallS", { width: 16, height: 6, depth: 0.5 }, scene);
+      wallS.position.set(0, 3, -8);
+      wallS.material = matWallPlaster;
+      registerBox(wallS, houseMeshes);
+
+      const wallE = BABYLON.MeshBuilder.CreateBox("wallE", { width: 0.5, height: 6, depth: 16 }, scene);
+      wallE.position.set(8, 3, 0);
+      wallE.material = matWallPlaster;
+      registerBox(wallE, houseMeshes);
+
+      const wallW = BABYLON.MeshBuilder.CreateBox("wallW", { width: 0.5, height: 6, depth: 16 }, scene);
+      wallW.position.set(-8, 3, 0);
+      wallW.material = matWallPlaster;
+      registerBox(wallW, houseMeshes);
+
+      const baseN = BABYLON.MeshBuilder.CreateBox("baseN", { width: 15.6, height: 0.25, depth: 0.58 }, scene);
+      baseN.position.set(0, 0.125, 7.9);
+      baseN.material = matDarkTrim;
+      houseMeshes.push(baseN);
+
+      const windowGlow = BABYLON.MeshBuilder.CreateBox("winGlow", { width: 7.5, height: 2.8, depth: 0.22 }, scene);
+      windowGlow.position.set(-4, 3.2, 7.7);
+      windowGlow.material = matPink;
+      houseMeshes.push(windowGlow);
+
+      const bedFrame = BABYLON.MeshBuilder.CreateBox("bed", { width: 3.2, height: 0.8, depth: 4.5 }, scene);
+      bedFrame.position.set(-5.5, 0.4, -4.5);
+      bedFrame.material = matFabric;
+      registerBox(bedFrame, houseMeshes);
+
+      const desk = BABYLON.MeshBuilder.CreateBox("desk", { width: 4.2, height: 1.1, depth: 2.0 }, scene);
+      desk.position.set(3.5, 0.55, 6.2);
+      desk.material = matDarkTrim;
+      registerBox(desk, houseMeshes);
+
+      const pcTower = BABYLON.MeshBuilder.CreateBox("pcTower", { width: 0.6, height: 1.2, depth: 1.1 }, scene);
+      pcTower.position.set(5.0, 1.7, 6.2);
+      pcTower.material = matDarkTrim;
+      houseMeshes.push(pcTower);
+
+      pcMonitorMesh = BABYLON.MeshBuilder.CreateBox("pcMonitor", { width: 2.0, height: 1.2, depth: 0.15 }, scene);
+      pcMonitorMesh.position.set(3.2, 1.85, 6.3);
+      pcMonitorMesh.material = matCyan;
+      houseMeshes.push(pcMonitorMesh);
+
+      const trim = BABYLON.MeshBuilder.CreateBox("trim", { width: 15.4, height: 0.15, depth: 15.4 }, scene);
+      trim.position.set(0, 5.9, 0);
+      trim.material = matCyan;
+      houseMeshes.push(trim);
+
+      playerPosX = 0;
+      playerPosZ = -2;
+      playerFootY = 0;
+      cameraYaw = 0.55;
+      cameraPitch = 0.05;
+      velocityY = 0;
+      selfRig.root.position.set(playerPosX, playerFootY, playerPosZ);
+      camera.position.set(playerPosX, 1.85, playerPosZ);
+    }
+
+    function buildNeonCity() {
+      colliders = [];
+      clearMeshes(houseMeshes);
+      clearMeshes(cityMeshes);
+
+      const ground = BABYLON.MeshBuilder.CreateBox("cityGround", { width: 320, height: 1, depth: 320 }, scene);
+      ground.position.set(0, -0.5, 0);
+      ground.material = matRoad;
+      registerBox(ground, cityMeshes, false, false);
+
+      for (let i = -120; i <= 120; i += 40) {
+        const lineX = BABYLON.MeshBuilder.CreateBox("lx" + i, { width: 320, height: 0.05, depth: 0.5 }, scene);
+        lineX.position.set(0, 0.025, i);
+        lineX.material = matCyan;
+        cityMeshes.push(lineX);
+
+        const lineZ = BABYLON.MeshBuilder.CreateBox("lz" + i, { width: 0.5, height: 0.05, depth: 320 }, scene);
+        lineZ.position.set(i, 0.025, 0);
+        lineZ.material = matPink;
+        cityMeshes.push(lineZ);
+      }
+
+      const towerConfigs = [
+        { x: -45, z: -45, w: 22, h: 55, d: 22, facade: matFacadeCyan, neon: matCyan },
+        { x: 45, z: -45, w: 24, h: 68, d: 24, facade: matFacadePink, neon: matPink },
+        { x: -45, z: 45, w: 20, h: 48, d: 20, facade: matFacadeAmber, neon: matPurple },
+        { x: 45, z: 45, w: 26, h: 75, d: 26, facade: matFacadeAmber, neon: matYellow },
+        { x: 0, z: -85, w: 30, h: 85, d: 24, facade: matFacadeCyan, neon: matCyan },
+        { x: 0, z: 85, w: 28, h: 62, d: 24, facade: matFacadePink, neon: matPink }
+      ];
+
+      towerConfigs.forEach((t, idx) => {
+        const tower = BABYLON.MeshBuilder.CreateBox("tower_" + idx, { width: t.w, height: t.h, depth: t.d }, scene);
+        tower.position.set(t.x, t.h / 2, t.z);
+        tower.material = t.facade;
+        registerBox(tower, cityMeshes, false, true);
+
+        const crown = BABYLON.MeshBuilder.CreateBox("crown_" + idx, { width: t.w + 0.9, height: 1.2, depth: t.d + 0.9 }, scene);
+        crown.position.set(t.x, t.h - 1, t.z);
+        crown.material = t.neon;
+        cityMeshes.push(crown);
+
+        const steps = Math.floor(t.h / 6);
+        for (let s = 1; s <= steps; s++) {
+          const side = s % 4;
+          let lx = t.x, lz = t.z;
+          const offset = (t.w / 2) + 2.2;
+          if (side === 0) lx += offset;
+          if (side === 1) lz += offset;
+          if (side === 2) lx -= offset;
+          if (side === 3) lz -= offset;
+
+          const ledge = BABYLON.MeshBuilder.CreateBox(`ledge_${idx}_${s}`, { width: 5, height: 0.6, depth: 5 }, scene);
+          ledge.position.set(lx, s * 6, lz);
+          ledge.material = matDarkTrim;
+          registerBox(ledge, cityMeshes, false, false);
+        }
+
+        if (idx < 4) {
+          const bridge = BABYLON.MeshBuilder.CreateBox("bridge_" + idx, { width: 6, height: 0.6, depth: 68 }, scene);
+          bridge.position.set(t.x, 42, 0);
+          bridge.material = matDarkTrim;
+          registerBox(bridge, cityMeshes, false, false);
+        }
+      });
+
+      const shopLocations = [
+        { x: -18, z: -20, title: "CYBER RAMEN", sub: "HOT NOODLES & BROTH", hex: "#ff007f", mat: matPink },
+        { x: 18, z: -20, title: "MODS & KICKS", sub: "PARKOUR GEAR", hex: "#00f3ff", mat: matCyan },
+        { x: -18, z: 20, title: "SYNTH DRINKS", sub: "ENERGY & TONICS", hex: "#ffe600", mat: matYellow },
+        { x: 18, z: 20, title: "HOLO TECH", sub: "CYBERNETICS", hex: "#39ff14", mat: matGreen }
+      ];
+
+      shopLocations.forEach((s, i) => {
+        const shop = BABYLON.MeshBuilder.CreateBox("shop_" + i, { width: 12, height: 6, depth: 10 }, scene);
+        shop.position.set(s.x, 3, s.z);
+        shop.material = matWallPlaster;
+        registerBox(shop, cityMeshes, false, true);
+
+        const signMat = new BABYLON.StandardMaterial("shopSignMat_" + i, scene);
+        signMat.diffuseTexture = makeShopSignTexture("shopSignTex_" + i, s.title, s.sub, s.hex);
+        signMat.emissiveTexture = signMat.diffuseTexture;
+
+        const sign = BABYLON.MeshBuilder.CreateBox("shopSign_" + i, { width: 9.2, height: 2.0, depth: 0.45 }, scene);
+        sign.position.set(s.x, 4.7, s.z + (s.z < 0 ? 5.2 : -5.2));
+        sign.material = signMat;
+        cityMeshes.push(sign);
+
+        const awning = BABYLON.MeshBuilder.CreateBox("awning_" + i, { width: 12, height: 0.4, depth: 3 }, scene);
+        awning.position.set(s.x, 3.2, s.z + (s.z < 0 ? 6.5 : -6.5));
+        awning.material = s.mat;
+        registerBox(awning, cityMeshes, false, false);
+      });
+
+      const stationPlat = BABYLON.MeshBuilder.CreateBox("stationPlat", { width: 44, height: 1.5, depth: 14 }, scene);
+      stationPlat.position.set(0, 14, -32);
+      stationPlat.material = matDarkTrim;
+      registerBox(stationPlat, cityMeshes, false, false);
+
+      const stationRoof = BABYLON.MeshBuilder.CreateBox("stationRoof", { width: 46, height: 0.9, depth: 16 }, scene);
+      stationRoof.position.set(0, 21, -32);
+      stationRoof.material = matFacadeCyan;
+      registerBox(stationRoof, cityMeshes, false, false);
+
+      [-18, 0, 18].forEach((px, i) => {
+        const pillar = BABYLON.MeshBuilder.CreateBox("stPillar_" + i, { width: 2.5, height: 14, depth: 2.5 }, scene);
+        pillar.position.set(px, 7, -32);
+        pillar.material = matDarkTrim;
+        registerBox(pillar, cityMeshes, false, true);
+      });
+
+      const trackN = BABYLON.MeshBuilder.CreateBox("trackN", { width: 220, height: 0.8, depth: 4 }, scene);
+      trackN.position.set(0, 13.5, -24);
+      trackN.material = matDarkTrim;
+      registerBox(trackN, cityMeshes, false, false);
+
+      const trackS = BABYLON.MeshBuilder.CreateBox("trackS", { width: 220, height: 0.8, depth: 4 }, scene);
+      trackS.position.set(0, 13.5, 24);
+      trackS.material = matDarkTrim;
+      registerBox(trackS, cityMeshes, false, false);
+
+      trainMesh = BABYLON.MeshBuilder.CreateBox("neonTrain", { width: 22, height: 3.4, depth: 3.6 }, scene);
+      trainMesh.position.set(0, 15.8, -24);
+      trainMesh.material = matFacadePink;
+      cityMeshes.push(trainMesh);
+
+      const jumpPads = [
+        { x: 0, z: 0 },
+        { x: -25, z: 0 },
+        { x: 25, z: 0 },
+        { x: 0, z: -22 },
+        { x: -45, z: -28 },
+        { x: 45, z: -28 }
+      ];
+
+      jumpPads.forEach((jp, i) => {
+        const pad = BABYLON.MeshBuilder.CreateBox("jpad_" + i, { width: 4.5, height: 0.5, depth: 4.5 }, scene);
+        pad.position.set(jp.x, 0.25, jp.z);
+        pad.material = matGreen;
+        registerBox(pad, cityMeshes, true, false);
+      });
+
+      for (let i = -3; i <= 3; i++) {
+        if (i === 0) continue;
+        const wallPanel = BABYLON.MeshBuilder.CreateBox("wallPanel_" + i, { width: 1.0, height: 8, depth: 14 }, scene);
+        wallPanel.position.set(i * 11, 6, 0);
+        wallPanel.material = i % 2 === 0 ? matFacadeCyan : matFacadePink;
+        registerBox(wallPanel, cityMeshes, false, true);
+      }
+
+      playerPosX = 0;
+      playerPosZ = 10;
+      playerFootY = 0;
+      velocityY = 0;
+      selfRig.root.position.set(playerPosX, playerFootY, playerPosZ);
+      camera.position.set(playerPosX, 1.85, playerPosZ);
+    }
+
+    const entityVisuals = {};
+
+    function getRoleAccentMat(role) {
+      if (role === 'infected') return matGreen;
+      if (role === 'runner') return matCyan;
+      if (role === 'tagger') return matPink;
+      return matPurple;
+    }
+
+    function createEntityMesh(entity) {
+      const rig = createHumanRig("ent_" + entity.id, getRoleAccentMat(entity.role), false);
+
+      const plane = BABYLON.MeshBuilder.CreatePlane("tag_" + entity.id, { width: 3.4, height: 0.85 }, scene);
+      plane.parent = rig.root;
+      plane.position.y = 2.35;
+      plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+      const dt = new BABYLON.DynamicTexture("dt_" + entity.id, { width: 512, height: 128 }, scene, false);
+      dt.hasAlpha = true;
+      const tagMat = new BABYLON.StandardMaterial("tagMat_" + entity.id, scene);
+      tagMat.diffuseTexture = dt;
+      tagMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+      tagMat.backFaceCulling = false;
+      plane.material = tagMat;
+
+      return { rig, dt, lastRole: null, lastName: null, phase: Math.random() * 6 };
+    }
+
+    function updateEntityVisual(vis, entity, dtSec) {
+      const prevX = vis.rig.root.position.x;
+      const prevZ = vis.rig.root.position.z;
+      const targetPos = new BABYLON.Vector3(entity.x, entity.y, entity.z);
+      vis.rig.root.position = BABYLON.Vector3.Lerp(vis.rig.root.position, targetPos, 0.35);
+      vis.rig.root.rotation.y = entity.ry || 0;
+
+      const movedDist = Math.hypot(vis.rig.root.position.x - prevX, vis.rig.root.position.z - prevZ);
+      const speedRatio = Math.min(1.4, (movedDist / Math.max(dtSec, 0.001)) / 10.5);
+      vis.phase += dtSec * (6 + speedRatio * 8);
+      animateHumanRig(vis.rig, vis.phase, speedRatio, entity.y <= 0.6, false);
+
+      if (vis.lastRole !== entity.role || vis.lastName !== entity.name) {
+        vis.lastRole = entity.role;
+        vis.lastName = entity.name;
+        const accent = getRoleAccentMat(entity.role);
+        vis.rig.stripe.material = accent;
+        vis.rig.visor.material = accent;
+        vis.rig.leftShoe.material = accent;
+        vis.rig.rightShoe.material = accent;
+
+        const ctx = vis.dt.getContext();
+        if (ctx) {
+          ctx.clearRect(0, 0, 512, 128);
+          ctx.font = "bold 34px Segoe UI";
+          ctx.textAlign = "center";
+          ctx.fillStyle = entity.role === 'infected' ? '#39ff14' : (entity.role === 'runner' ? '#00f3ff' : '#ff007f');
+          ctx.fillText(`${entity.name} [${entity.role.toUpperCase()}]`, 256, 75);
+          vis.dt.update();
+        }
+      }
+    }
+
+    function clearAllEntities() {
+      Object.values(entityVisuals).forEach(v => v.rig.root.dispose());
+      for (const k in entityVisuals) delete entityVisuals[k];
+    }
+
+    const escMenuOverlay = document.getElementById('escMenuOverlay');
+    const escResumeBtn = document.getElementById('escResumeBtn');
+    const escCloseTabBtn = document.getElementById('escCloseTabBtn');
+    const escStatusText = document.getElementById('escStatusText');
+    const centerLockedCursor = document.getElementById('centerLockedCursor');
+
+    let escMenuOpen = false;
+    let centerLockEngaged = false;
+    let suppressNextUnlockPrompt = false;
+    let lastHoverX = null;
+    let lastHoverY = null;
+
+    function isAnyOverlayOpen() {
+      return escMenuOpen || !pcModal.classList.contains('hidden');
+    }
+
+    function isBrowserPointerLocked() {
+      return Boolean(document.pointerLockElement || document.mozPointerLockElement || document.webkitPointerLockElement);
+    }
+
+    function syncCenterCursor() {
+      const activeLock = !isAnyOverlayOpen() && (centerLockEngaged || isBrowserPointerLocked());
+      if (activeLock) {
+        centerLockedCursor.classList.remove('hidden');
+        canvas.style.cursor = 'none';
+      } else {
+        centerLockedCursor.classList.add('hidden');
+        canvas.style.cursor = 'default';
+      }
+    }
+
+    function tryNativePointerLock(el) {
+      if (!el) return false;
+      const fn = el.requestPointerLock || el.mozRequestPointerLock || el.webkitRequestPointerLock;
+      if (typeof fn !== 'function') return false;
+      try {
+        const ret = fn.call(el);
+        if (ret && typeof ret.catch === 'function') {
+          ret.catch(() => {});
+        }
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function requestCenterMouseLock() {
+      if (isAnyOverlayOpen()) return;
+      pointerLockGraceTimer = 0.12;
+      lastPointerX = null;
+      lastPointerY = null;
+      lastHoverX = null;
+      lastHoverY = null;
+      centerLockEngaged = true;
+
+      const targets = [canvas, document.body, document.documentElement];
+      for (const t of targets) {
+        if (tryNativePointerLock(t)) break;
+      }
+      syncCenterCursor();
+    }
+
+    function unlockMouseNow() {
+      suppressNextUnlockPrompt = true;
+      centerLockEngaged = false;
+      isPointerDragging = false;
+      lastPointerX = null;
+      lastPointerY = null;
+      lastHoverX = null;
+      lastHoverY = null;
+
+      const exitFn = document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock;
+      if (isBrowserPointerLocked() && typeof exitFn === 'function') {
+        try {
+          const ret = exitFn.call(document);
+          if (ret && typeof ret.catch === 'function') {
+            ret.catch(() => {});
+          }
+        } catch (_) {}
+      }
+      syncCenterCursor();
+    }
+
+    function openEscMenu(reasonText) {
+      if (escMenuOpen) return;
+      escMenuOpen = true;
+      if (!pcModal.classList.contains('hidden')) {
+        pcModal.classList.add('hidden');
+      }
+      if (escStatusText) {
+        escStatusText.textContent = reasonText || "Mouse unlocked. Choose an option below:";
+      }
+      escMenuOverlay.classList.remove('hidden');
+      unlockMouseNow();
+    }
+
+    function resumeFromEscMenu() {
+      if (!escMenuOpen) return;
+      escMenuOpen = false;
+      escMenuOverlay.classList.add('hidden');
+      requestCenterMouseLock();
+    }
+
+    escResumeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      resumeFromEscMenu();
+    });
+
+    escCloseTabBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try { window.close(); } catch (_) {}
+      try { window.open('', '_self').close(); } catch (_) {}
+      showEvent("If your browser blocks script tab closing, press Ctrl+W / Cmd+W to close this tab.");
+    });
+
+    function applyLookDelta(dx, dy) {
+      if (pointerLockGraceTimer > 0) return;
+      if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+      if (Math.abs(dx) > 220 || Math.abs(dy) > 220) return;
+
+      cameraYaw += dx * 0.0024;
+      cameraPitch += dy * 0.0022;
+
+      const maxPitch = 1.43;
+      if (cameraPitch > maxPitch) cameraPitch = maxPitch;
+      if (cameraPitch < -maxPitch) cameraPitch = -maxPitch;
+    }
+
+    let tagSwingTimer = 0;
+
+    function triggerTagSwing() {
+      tagSwingTimer = 0.36;
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.button === 0 && !isAnyOverlayOpen()) {
+        isPointerDragging = true;
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+        requestCenterMouseLock();
+        triggerTagSwing();
+        if (currentZone === 'CITY' && currentRoomId) {
+          attemptTagInRoom();
+        }
+      }
+    });
+
+    window.addEventListener('pointerup', () => {
+      isPointerDragging = false;
+      lastPointerX = null;
+      lastPointerY = null;
+    });
+
+    function handlePointerLockChanged() {
+      pointerLockGraceTimer = 0.12;
+      lastPointerX = null;
+      lastPointerY = null;
+      lastHoverX = null;
+      lastHoverY = null;
+
+      const locked = isBrowserPointerLocked();
+      if (locked && !isAnyOverlayOpen()) {
+        centerLockEngaged = true;
+      } else if (!locked && !isAnyOverlayOpen()) {
+        if (suppressNextUnlockPrompt) {
+          suppressNextUnlockPrompt = false;
+          centerLockEngaged = false;
+        } else {
+          centerLockEngaged = false;
+          openEscMenu("Mouse unlocked — ESC menu active.");
+        }
+      }
+      syncCenterCursor();
+    }
+
+    document.addEventListener('pointerlockchange', handlePointerLockChanged);
+    document.addEventListener('mozpointerlockchange', handlePointerLockChanged);
+    document.addEventListener('webkitpointerlockchange', handlePointerLockChanged);
+
+    document.addEventListener('pointerlockerror', () => {
+      if (!isAnyOverlayOpen() && centerLockEngaged) {
+        syncCenterCursor();
+      }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (isAnyOverlayOpen()) {
+        lastHoverX = null;
+        lastHoverY = null;
+        return;
+      }
+
+      if (isBrowserPointerLocked()) {
+        applyLookDelta(e.movementX || 0, e.movementY || 0);
+      } else if (centerLockEngaged) {
+        if (typeof e.movementX === 'number' && (e.movementX !== 0 || e.movementY !== 0)) {
+          applyLookDelta(e.movementX, e.movementY);
+        } else if (lastHoverX !== null && lastHoverY !== null) {
+          applyLookDelta(e.clientX - lastHoverX, e.clientY - lastHoverY);
+        }
+        lastHoverX = e.clientX;
+        lastHoverY = e.clientY;
+      } else if (isPointerDragging) {
+        if (lastPointerX !== null && lastPointerY !== null) {
+          const dx = e.clientX - lastPointerX;
+          const dy = e.clientY - lastPointerY;
+          applyLookDelta(dx, dy);
+        }
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' || e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (escMenuOpen) {
+          resumeFromEscMenu();
+        } else {
+          openEscMenu();
+        }
+        return;
+      }
+
+      if (escMenuOpen) return;
+
+      keys[e.code] = true;
+
+      if (e.code === 'KeyV' && pcModal.classList.contains('hidden')) {
+        thirdPersonView = !thirdPersonView;
+        showEvent(thirdPersonView ? "THIRD-PERSON BODY CAMERA" : "FIRST-PERSON BODY CAMERA");
+      }
+
+      if (e.code === 'Space' && pcModal.classList.contains('hidden')) {
+        if (playerStunTimer > 0) return;
+        if (isGrounded || wallRunSide !== 0) {
+          const isWallScale = wallRunSide !== 0;
+          velocityY = isWallScale ? 14.2 : 12.6;
+          isGrounded = false;
+          isSliding = false;
+          jumpCount = isWallScale ? 0 : 1;
+          if (isWallScale) {
+            // Slight inward/upward wall-jump kick so spamming wall-run + jump scales walls smoothly
+            playerPosX -= Math.cos(cameraYaw) * wallRunSide * 0.45;
+            playerPosZ += Math.sin(cameraYaw) * wallRunSide * 0.45;
+            wallRunSide = 0;
+          }
+        } else if (jumpCount < 2) {
+          velocityY = 11.5;
+          jumpCount = 2;
+        }
+      }
+
+      if (e.code === 'KeyE') {
+        if (!pcModal.classList.contains('hidden')) {
+          closePcUI();
+          return;
+        }
+        if (currentZone === 'HOUSE' && pcMonitorMesh) {
+          const dist = BABYLON.Vector3.Distance(selfRig.root.position, pcMonitorMesh.position);
+          if (dist < 4.5) openPcUI();
+        } else if (currentZone === 'CITY' && currentRoomId) {
+          triggerTagSwing();
+          attemptTagInRoom();
+        }
+      }
+
+      if (e.code === 'KeyH' && currentZone === 'CITY' && pcModal.classList.contains('hidden')) {
+        returnToHouse();
+      }
+    }, true);
+
+    window.addEventListener('keyup', (e) => {
+      keys[e.code] = false;
+    });
+
+    window.addEventListener('blur', () => {
+      for (const k in keys) keys[k] = false;
+      isPointerDragging = false;
+    });
+
+    function attemptTagInRoom() {
+      const now = Date.now();
+      if (now - lastTagTime < 450) return;
+      if (playerStunTimer > 0) {
+        showEvent("You are STUNNED from getting juked!");
+        return;
+      }
+
+      const srv = servers[currentRoomId];
+      if (!srv) return;
+
+      const peers = getPeersInRoom(currentRoomId);
+      const candidates = [...srv.bots, ...peers];
+
+      let closest = null;
+      let closestDist = 4.5;
+      for (const c of candidates) {
+        const d = BABYLON.Vector3.Distance(selfRig.root.position, new BABYLON.Vector3(c.x, c.y, c.z));
+        if (d < closestDist) {
+          closestDist = d;
+          closest = c;
+        }
+      }
+      if (!closest) return;
+
+      if ((cStun => cStun > 0)(closest.stunTimer || 0)) {
+        showEvent(`${closest.name} is STUNNED and cannot be tagged!`);
+        return;
+      }
+
+      if (srv.mode !== 'casual') {
+        if ((closest.noTagBackTimer || 0) > 0 && closest.lastTaggedById === clientId) {
+          showEvent(`NO TAG BACKS for 5s on ${closest.name}!`);
+          return;
+        }
+        if (selfNoTagBackTimer > 0 && lastTaggedEntityId === closest.id) {
+          showEvent(`NO TAG BACKS for 5s!`);
+          return;
+        }
+      }
+
+      if (srv.mode === 'infection') {
+        if (selfRole === 'infected' && closest.role === 'survivor') {
+          closest.role = 'infected';
+          closest.noTagBackTimer = 5.0;
+          closest.lastTaggedById = clientId;
+          selfNoTagBackTimer = 5.0;
+          lastTaggedEntityId = closest.id;
+          selfScore += 50;
+          lastTagTime = now;
+          showEvent(`${selfName} INFECTED ${closest.name}! (5s No Tag-Backs)`);
+          if (!closest.isBot && channel) {
+            channel.postMessage({ type: 'roleChange', targetId: closest.id, role: 'infected', serverId: currentRoomId, noTagBackSec: 5.0, fromId: clientId, msg: `${selfName} INFECTED ${closest.name}!` });
+          }
+          normalizeServerRoles(srv);
+        }
+      } else if (srv.mode === 'classic') {
+        if (selfRole === 'tagger' && closest.role === 'runner') {
+          closest.role = 'tagger';
+          closest.noTagBackTimer = 5.0;
+          closest.lastTaggedById = clientId;
+          selfRole = 'runner';
+          selfNoTagBackTimer = 5.0;
+          lastTaggedEntityId = closest.id;
+          selfScore += 50;
+          lastTagTime = now + 800;
+          const msg = `${selfName} TAGGED ${closest.name}! ${closest.name} is now IT! (5s No Tag-Backs)`;
+          showEvent(msg);
+          if (!closest.isBot && channel) {
+            channel.postMessage({ type: 'roleChange', targetId: closest.id, role: 'tagger', serverId: currentRoomId, noTagBackSec: 5.0, fromId: clientId, msg });
+          }
+        }
+      } else if (srv.mode === 'onerunner') {
+        if (selfRole === 'tagger' && closest.role === 'runner') {
+          closest.role = 'tagger';
+          closest.noTagBackTimer = 5.0;
+          closest.lastTaggedById = clientId;
+          selfRole = 'runner';
+          selfNoTagBackTimer = 5.0;
+          lastTaggedEntityId = closest.id;
+          selfScore += 100;
+          lastTagTime = now + 800;
+          const msg = `${selfName} TAGGED ${closest.name} and is now THE RUNNER! (5s No Tag-Backs)`;
+          showEvent(msg);
+          if (!closest.isBot && channel) {
+            channel.postMessage({ type: 'roleChange', targetId: closest.id, role: 'tagger', serverId: currentRoomId, noTagBackSec: 5.0, fromId: clientId, msg });
+          }
+        }
+      }
+    }
+
+    const modeDescriptions = {
+      casual: "<b>CASUAL:</b> Free-roam parkour across neon skyscrapers, train stations, shops, and rooftops with no tag pressure.",
+      classic: "<b>CLASSIC TAG:</b> One player is <b>IT</b> (Tagger). Tag <b>[E]</b> another player to pass IT on!",
+      infection: "<b>INFECTION:</b> Infected runners hunt Survivors. Press <b>[E]</b> near Survivors to infect them!",
+      onerunner: "<b>ONE RUNNER:</b> One player is THE RUNNER earning points every second. Tagging the Runner <b>[E]</b> makes YOU the Runner!"
+    };
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMode = btn.dataset.mode;
+        document.getElementById('modeDesc').innerHTML = modeDescriptions[selectedMode];
+        renderServerList();
+      });
+    });
+
+    function openPcUI() {
+      pcError.classList.add('hidden');
+      pcModal.classList.remove('hidden');
+      unlockMouseNow();
+      renderServerList();
+    }
+
+    function closePcUI() {
+      pcModal.classList.add('hidden');
+      lastPointerX = null;
+      lastPointerY = null;
+      pointerLockGraceTimer = 0.12;
+      requestCenterMouseLock();
+    }
+
+    document.getElementById('closePcBtn').addEventListener('click', closePcUI);
+
+    function joinTargetServer(requestedId) {
+      selfName = (document.getElementById('playerNameInput').value || 'NeonRunner').trim().substring(0, 16) || 'NeonRunner';
+      const cleanId = (requestedId || '').trim().toUpperCase();
+      let target = null;
+
+      if (cleanId && cleanId !== 'AUTO') {
+        if (!servers[cleanId]) {
+          servers[cleanId] = { id: cleanId, mode: selectedMode, max: MAX_PLAYERS, bots: [] };
+          seedBotsForServer(servers[cleanId], 2);
+        }
+        target = servers[cleanId];
+      } else {
+        const nonFullMatching = Object.values(servers)
+          .filter(s => s.mode === selectedMode && getRoomCount(s.id) < s.max)
+          .sort((a, b) => getRoomCount(b.id) - getRoomCount(a.id));
+
+        if (nonFullMatching.length > 0) {
+          target = nonFullMatching[0];
+        } else {
+          const newId = `${selectedMode.substring(0, 3).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+          servers[newId] = { id: newId, mode: selectedMode, max: MAX_PLAYERS, bots: [] };
+          seedBotsForServer(servers[newId], 2);
+          target = servers[newId];
+        }
+      }
+
+      if (getRoomCount(target.id) >= target.max) {
+        pcError.textContent = `Server ${target.id} is FULL (${target.max}/${target.max}). Choose another or click Most Popular.`;
+        pcError.classList.remove('hidden');
+        return;
+      }
+
+      currentRoomId = target.id;
+      selectedMode = target.mode;
+      selfScore = 0;
+
+      if (target.mode === 'casual') selfRole = 'runner';
+      else if (target.mode === 'classic') {
+        const hasTagger = target.bots.some(b => b.role === 'tagger') || getPeersInRoom(target.id).some(p => p.role === 'tagger');
+        selfRole = hasTagger ? 'runner' : 'tagger';
+      } else if (target.mode === 'infection') selfRole = 'survivor';
+      else if (target.mode === 'onerunner') {
+        const hasRunner = target.bots.some(b => b.role === 'runner') || getPeersInRoom(target.id).some(p => p.role === 'runner');
+        selfRole = hasRunner ? 'tagger' : 'runner';
+      }
+
+      currentZone = 'CITY';
+      pcModal.classList.add('hidden');
+      interactPrompt.classList.add('hidden');
+
+      clearAllEntities();
+      buildNeonCity();
+
+      hudLocation.textContent = `SERVER ${target.id} (${target.mode.toUpperCase()})`;
+      hudModeInfo.innerHTML = target.mode === 'onerunner'
+        ? "Tag <b>THE RUNNER [E]</b> to become the Runner!"
+        : (target.mode === 'classic'
+            ? "Classic Tag: Tag <b>[E]</b> a runner to pass <b>IT</b>, or run when you're <b>IT</b>!"
+            : (target.mode === 'infection' ? "Avoid the <b>INFECTED</b> or hunt Survivors <b>[E]</b>!" : "Explore towers, shops & train stations!"));
+      hudRoleBadge.classList.remove('hidden');
+      hudScore.classList.remove('hidden');
+      leaderboardBox.classList.remove('hidden');
+      showEvent(`Connected to ${target.id} [${target.mode.toUpperCase()}]`);
+    }
+
+    document.getElementById('joinAutoBtn').addEventListener('click', () => joinTargetServer('AUTO'));
+    document.getElementById('joinSpecificBtn').addEventListener('click', () => {
+      joinTargetServer(document.getElementById('serverIdInput').value);
+    });
+
+    function renderServerList() {
+      const container = document.getElementById('serverListContainer');
+      container.innerHTML = '';
+      const sorted = Object.values(servers).sort((a, b) => getRoomCount(b.id) - getRoomCount(a.id));
+      sorted.forEach(srv => {
+        const count = getRoomCount(srv.id);
+        const div = document.createElement('div');
+        div.className = 'server-item';
+        div.innerHTML = `
+          <span><b>${srv.id}</b> [${srv.mode.toUpperCase()}]</span>
+          <span>${count} / ${srv.max} Runners ${count >= srv.max ? '(FULL)' : ''}</span>
+        `;
+        div.onclick = () => {
+          document.getElementById('serverIdInput').value = srv.id;
+          document.querySelectorAll('.mode-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === srv.mode);
+          });
+          selectedMode = srv.mode;
+          document.getElementById('modeDesc').innerHTML = modeDescriptions[selectedMode];
+        };
+        container.appendChild(div);
+      });
+    }
+
+    function returnToHouse() {
+      if (channel && currentRoomId) {
+        channel.postMessage({ type: 'leave', id: clientId, serverId: currentRoomId });
+      }
+      currentRoomId = null;
+      currentZone = 'HOUSE';
+      clearAllEntities();
+      buildSpawnHouse();
+
+      hudLocation.textContent = "SAFEHOUSE APARTMENT";
+      hudModeInfo.innerHTML = "Walk to your <b>GAMING PC</b> &amp; press <b>[E]</b> to connect to the Neon City";
+      hudRoleBadge.classList.add('hidden');
+      hudScore.classList.add('hidden');
+      leaderboardBox.classList.add('hidden');
+    }
+
+    if (channel) {
+      channel.onmessage = (ev) => {
+        const msg = ev.data;
+        if (!msg || msg.id === clientId) return;
+
+        if (msg.type === 'state') {
+          livePeers[msg.id] = { ...msg.player, lastSeen: Date.now() };
+        } else if (msg.type === 'leave') {
+          delete livePeers[msg.id];
+        } else if (msg.type === 'roleChange' && msg.targetId === clientId && msg.serverId === currentRoomId) {
+          selfRole = msg.role;
+          selfNoTagBackTimer = Math.max(selfNoTagBackTimer, msg.noTagBackSec || 5.0);
+          lastTaggedEntityId = msg.fromId || null;
+          if (msg.msg) showEvent(msg.msg);
+        } else if (msg.type === 'stunPlayer' && msg.targetId === clientId && msg.serverId === currentRoomId) {
+          playerStunTimer = Math.max(playerStunTimer, msg.duration || 5.0);
+          if (msg.msg) showEvent(msg.msg);
+        }
+      };
+    }
+
+    buildSpawnHouse();
+    renderServerList();
+
+    let lastBroadcast = 0;
+    let scoreTick = 0;
+    let lastFrameTime = performance.now();
+
+    engine.runRenderLoop(() => {
+      try {
+        const nowMs = performance.now();
+        const rawDt = (nowMs - lastFrameTime) / 1000;
+        lastFrameTime = nowMs;
+        const dt = Math.max(0.001, Math.min(rawDt, 0.05));
+
+        if (pointerLockGraceTimer > 0) {
+          pointerLockGraceTimer = Math.max(0, pointerLockGraceTimer - dt);
+        }
+
+        let horizSpeed = 0;
+        let actualX = playerPosX;
+        let actualZ = playerPosZ;
+
+        syncCenterCursor();
+        if (!isAnyOverlayOpen()) {
+          const turnSpeed = 2.2;
+          if (keys['KeyQ'] || keys['ArrowLeft']) cameraYaw -= turnSpeed * dt;
+          if (keys['ArrowRight']) cameraYaw += turnSpeed * dt;
+
+          const forward = new BABYLON.Vector3(Math.sin(cameraYaw), 0, Math.cos(cameraYaw));
+          const right = new BABYLON.Vector3(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw));
+
+          let move = BABYLON.Vector3.Zero();
+          if (keys['KeyW'] || keys['ArrowUp']) move.addInPlace(forward);
+          if (keys['KeyS'] || keys['ArrowDown']) move.subtractInPlace(forward);
+          if (keys['KeyD']) move.addInPlace(right);
+          if (keys['KeyA']) move.subtractInPlace(right);
+
+          if (move.lengthSquared() > 0) move.normalize();
+
+          if (selfNoTagBackTimer > 0) {
+            selfNoTagBackTimer = Math.max(0, selfNoTagBackTimer - dt);
+          }
+          if (playerStunTimer > 0) {
+            playerStunTimer = Math.max(0, playerStunTimer - dt);
+            move = BABYLON.Vector3.Zero();
+            isSliding = false;
+          }
+          if (slideCooldownTimer > 0) slideCooldownTimer = Math.max(0, slideCooldownTimer - dt);
+          if (slideBurstTimer > 0) {
+            slideBurstTimer = Math.max(0, slideBurstTimer - dt);
+            if (slideBurstTimer <= 0 || !isGrounded) isSliding = false;
+          } else if (!keys['KeyC']) {
+            isSliding = false;
+          }
+
+          const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && playerStunTimer <= 0;
+          if (keys['KeyC'] && isGrounded && playerStunTimer <= 0 && !isSliding && slideCooldownTimer <= 0) {
+            isSliding = true;
+            slideBurstTimer = 0.55;
+            slideCooldownTimer = 0.75;
+          }
+
+          let speed = playerStunTimer > 0 ? 0 : (sprinting ? 16.0 : 10.5);
+          if (isSliding) speed = 20.5;
+
+          wallRunSide = 0;
+          if (!isGrounded && playerStunTimer <= 0 && move.lengthSquared() > 0) {
+            for (const c of colliders) {
+              if (!c.isWallRunnable) continue;
+              const midY = playerFootY + 1.0;
+              if (midY > c.minY + 0.2 && midY < c.maxY + 0.5) {
+                const nearX = Math.abs(actualX - c.minX) < 1.05 || Math.abs(actualX - c.maxX) < 1.05;
+                const nearZ = Math.abs(actualZ - c.minZ) < 1.05 || Math.abs(actualZ - c.maxZ) < 1.05;
+                const withinZ = actualZ >= c.minZ - 0.45 && actualZ <= c.maxZ + 0.45;
+                const withinX = actualX >= c.minX - 0.45 && actualX <= c.maxX + 0.45;
+                if ((nearX && withinZ) || (nearZ && withinX)) {
+                  wallRunSide = (Math.abs(actualX - c.minX) < Math.abs(actualX - c.maxX)) ? -1 : 1;
+                  if (velocityY < 0) velocityY = Math.max(velocityY, -1.0);
+                  jumpCount = 0;
+                  break;
+                }
+              }
+            }
+          }
+
+          const targetFov = isSliding ? 1.18 : (sprinting ? 1.12 : 1.05);
+          camera.fov += (targetFov - camera.fov) * Math.min(1, 10 * dt);
+          threeCamera.fov = BABYLON.Tools.ToDegrees(camera.fov);
+          threeCamera.updateProjectionMatrix();
+
+          const prevX = actualX;
+          const prevZ = actualZ;
+          const totalDx = move.x * speed * dt;
+          const totalDz = move.z * speed * dt;
+          const moveDist = Math.hypot(totalDx, totalDz);
+          const steps = Math.max(1, Math.ceil(moveDist / 0.12));
+          const stepDx = totalDx / steps;
+          const stepDz = totalDz / steps;
+          const eyeHeight = isSliding ? 1.05 : 1.72;
+          const playerRadius = 0.36;
+
+          const feetY = playerFootY + 0.16;
+          const headY = playerFootY + (isSliding ? 1.05 : 1.72);
+
+          for (let st = 0; st < steps; st++) {
+            const tryX = actualX + stepDx;
+            let hitX = false;
+            for (const c of colliders) {
+              if (headY > c.minY + 0.04 && feetY < c.maxY - 0.04) {
+                if (tryX + playerRadius > c.minX && tryX - playerRadius < c.maxX &&
+                    actualZ + playerRadius > c.minZ && actualZ - playerRadius < c.maxZ) {
+                  hitX = true;
+                  break;
+                }
+              }
+            }
+            if (!hitX) {
+              actualX = tryX;
+            }
+
+            const tryZ = actualZ + stepDz;
+            let hitZ = false;
+            for (const c of colliders) {
+              if (headY > c.minY + 0.04 && feetY < c.maxY - 0.04) {
+                if (actualX + playerRadius > c.minX && actualX - playerRadius < c.maxX &&
+                    tryZ + playerRadius > c.minZ && tryZ - playerRadius < c.maxZ) {
+                  hitZ = true;
+                  break;
+                }
+              }
+            }
+            if (!hitZ) {
+              actualZ = tryZ;
+            }
+          }
+
+          // Smooth depenetration only when genuinely overlapping a collider volume
+          for (const c of colliders) {
+            if (headY > c.minY + 0.06 && feetY < c.maxY - 0.06) {
+              if (actualX + playerRadius > c.minX && actualX - playerRadius < c.maxX &&
+                  actualZ + playerRadius > c.minZ && actualZ - playerRadius < c.maxZ) {
+                const penLeft = (actualX + playerRadius) - c.minX;
+                const penRight = c.maxX - (actualX - playerRadius);
+                const penBack = (actualZ + playerRadius) - c.minZ;
+                const penFront = c.maxZ - (actualZ - playerRadius);
+                const minPen = Math.min(penLeft, penRight, penBack, penFront);
+                if (minPen === penLeft) actualX = c.minX - playerRadius - 0.01;
+                else if (minPen === penRight) actualX = c.maxX + playerRadius + 0.01;
+                else if (minPen === penBack) actualZ = c.minZ - playerRadius - 0.01;
+                else actualZ = c.maxZ + playerRadius + 0.01;
+              }
+            }
+          }
+
+          horizSpeed = Math.hypot(actualX - prevX, actualZ - prevZ) / Math.max(dt, 0.001);
+
+          if (!isGrounded || move.lengthSquared() > 0) {
+            velocityY = Math.max(-36.0, velocityY - 28.0 * dt);
+          } else {
+            velocityY = 0;
+          }
+          const nextFootY = playerFootY + velocityY * dt;
+          let landed = false;
+          let resolvedFootY = nextFootY;
+
+          for (const c of colliders) {
+            if (actualX + playerRadius > c.minX && actualX - playerRadius < c.maxX &&
+                actualZ + playerRadius > c.minZ && actualZ - playerRadius < c.maxZ) {
+              if (velocityY <= 0 && playerFootY >= c.maxY - 0.25 && nextFootY <= c.maxY + 0.04) {
+                resolvedFootY = c.maxY;
+                velocityY = 0;
+                landed = true;
+                jumpCount = 0;
+                if (c.isJumpPad) {
+                  velocityY = 23.0;
+                  landed = false;
+                  jumpCount = 1;
+                }
+              } else if (velocityY > 0 && (playerFootY + 1.75) <= c.minY + 0.25 && (nextFootY + 1.75) >= c.minY) {
+                resolvedFootY = Math.min(resolvedFootY, c.minY - 1.8);
+                velocityY = 0;
+              }
+            }
+          }
+
+          isGrounded = landed;
+          playerFootY = resolvedFootY;
+
+          if (playerFootY < -15 || !Number.isFinite(playerFootY)) {
+            actualX = 0;
+            actualZ = 10;
+            playerFootY = 2;
+            velocityY = 0;
+          }
+
+          playerPosX = actualX;
+          playerPosZ = actualZ;
+
+          if (tagSwingTimer > 0) {
+            tagSwingTimer = Math.max(0, tagSwingTimer - dt);
+          }
+          const swingFactor = tagSwingTimer > 0 ? Math.sin((tagSwingTimer / 0.36) * Math.PI) : 0;
+
+          const selfAccent = getRoleAccentMat(selfRole);
+          selfRig.stripe.material = selfAccent;
+          selfRig.visor.material = selfAccent;
+          selfRig.leftShoe.material = selfAccent;
+          selfRig.rightShoe.material = selfAccent;
+
+          const speedRatio = Math.min(1.5, horizSpeed / 10.5);
+          walkAnimPhase += dt * (5 + speedRatio * 9 + swingFactor * 6);
+          animateHumanRig(selfRig, walkAnimPhase, speedRatio, isGrounded, isSliding, swingFactor);
+
+          selfRig.root.setEnabled(true);
+          selfRig.root.rotation.y = cameraYaw;
+
+          if (!thirdPersonView) {
+            // Place full body slightly back from first-person eye so arms and full body are visible without blocking the lens
+            const bodyBack = 0.55;
+            const bodyX = actualX - Math.sin(cameraYaw) * bodyBack;
+            const bodyZ = actualZ - Math.cos(cameraYaw) * bodyBack;
+            selfRig.root.scaling.setAll(0.85);
+            selfRig.root.position.set(bodyX, playerFootY, bodyZ);
+            selfRig.head.setEnabled(false);
+            selfRig.leftArm.setEnabled(true);
+            selfRig.rightArm.setEnabled(true);
+          } else {
+            selfRig.root.scaling.setAll(0.85);
+            selfRig.root.position.set(actualX, playerFootY, actualZ);
+            selfRig.head.setEnabled(true);
+            selfRig.leftArm.setEnabled(true);
+            selfRig.rightArm.setEnabled(true);
+          }
+
+          camera.rotation.y = cameraYaw;
+          camera.rotation.x = cameraPitch;
+          camera.rotation.z = 0;
+
+          let targetCamX = actualX;
+          let targetCamY = playerFootY + eyeHeight;
+          let targetCamZ = actualZ;
+
+          if (thirdPersonView) {
+            const backDist = 3.2;
+            const dirX = Math.sin(cameraYaw);
+            const dirZ = Math.cos(cameraYaw);
+            let safeDist = backDist;
+            const raySteps = 16;
+            for (let rs = 1; rs <= raySteps; rs++) {
+              const testDist = (backDist * rs) / raySteps;
+              const tx = actualX - dirX * testDist;
+              const tz = actualZ - dirZ * testDist;
+              const ty = playerFootY + 1.9;
+              let blocked = false;
+              for (const c of colliders) {
+                if (tx > c.minX - 0.25 && tx < c.maxX + 0.25 &&
+                    tz > c.minZ - 0.25 && tz < c.maxZ + 0.25 &&
+                    ty > c.minY - 0.2 && ty < c.maxY + 0.2) {
+                  blocked = true;
+                  break;
+                }
+              }
+              if (blocked) {
+                safeDist = Math.max(0.4, (backDist * (rs - 1)) / raySteps);
+                break;
+              }
+            }
+            targetCamX = actualX - dirX * safeDist;
+            targetCamY = playerFootY + 1.9;
+            targetCamZ = actualZ - dirZ * safeDist;
+          }
+
+          // Clamp camera inside any collider
+          const camRad = 0.28;
+          for (const c of colliders) {
+            if (targetCamY + camRad > c.minY && targetCamY - camRad < c.maxY &&
+                targetCamX + camRad > c.minX && targetCamX - camRad < c.maxX &&
+                targetCamZ + camRad > c.minZ && targetCamZ - camRad < c.maxZ) {
+              targetCamX = actualX;
+              targetCamZ = actualZ;
+            }
+          }
+
+          camera.position.set(targetCamX, targetCamY, targetCamZ);
+
+          threeCamera.position.set(camera.position.x, camera.position.y, camera.position.z);
+          threeCamera.rotation.set(-cameraPitch, -cameraYaw + Math.PI, 0, 'YXZ');
+
+          playerAuraRing.position.set(actualX, playerFootY + 0.08, actualZ);
+          playerAuraRing.visible = thirdPersonView || sprinting;
+          const pulse = 1 + Math.sin(nowMs * 0.012) * 0.08;
+          playerAuraRing.scale.set(pulse, 1, pulse);
+        }
+
+        if (currentZone === 'HOUSE' && pcMonitorMesh && pcModal.classList.contains('hidden')) {
+          const dist = BABYLON.Vector3.Distance(selfRig.root.position, pcMonitorMesh.position);
+          interactPrompt.classList.toggle('hidden', dist >= 4.5);
+        }
+
+        if (currentZone === 'CITY' && currentRoomId && servers[currentRoomId]) {
+          const srv = servers[currentRoomId];
+
+          if (trainMesh) {
+            trainAngle += dt * 45;
+            if (trainAngle > 110) trainAngle = -110;
+            trainMesh.position.x = trainAngle;
+          }
+
+          if (srv.mode === 'onerunner' && selfRole === 'runner') {
+            scoreTick += dt;
+            if (scoreTick >= 1) {
+              scoreTick -= 1;
+              selfScore += 5;
+            }
+          }
+
+          const peers = getPeersInRoom(currentRoomId);
+          const allParticipants = [
+            { id: clientId, name: selfName, x: playerPosX, y: playerFootY, z: playerPosZ, role: selfRole, isSelf: true },
+            ...peers.map(p => ({ ...p, isSelf: false })),
+            ...srv.bots.map(b => ({ ...b, isSelf: false }))
+          ];
+
+          function botCollidesAt(bx, bz, by = 0, radius = 0.55) {
+            const feet = by + 0.15;
+            const head = by + 1.75;
+            for (const c of colliders) {
+              if (!c.isWallRunnable && c.maxY < 2.0) continue;
+              if (head > c.minY + 0.05 && feet < c.maxY - 0.05) {
+                if (bx + radius > c.minX && bx - radius < c.maxX &&
+                    bz + radius > c.minZ && bz - radius < c.maxZ) {
+                  return c;
+                }
+              }
+            }
+            return null;
+          }
+
+          function normalizeAngle(a) {
+            while (a > Math.PI) a -= Math.PI * 2;
+            while (a < -Math.PI) a += Math.PI * 2;
+            return a;
+          }
+
+          function getBotSupportY(bx, bz, by) {
+            let support = 0;
+            for (const c of colliders) {
+              if (bx + 0.45 > c.minX && bx - 0.45 < c.maxX &&
+                  bz + 0.45 > c.minZ && bz - 0.45 < c.maxZ) {
+                if (by >= c.maxY - 0.8 && c.maxY > support) {
+                  support = c.maxY;
+                }
+              }
+            }
+            return support;
+          }
+
+          const jumpPadCoords = [
+            { x: 0, z: 0 }, { x: -25, z: 0 }, { x: 25, z: 0 },
+            { x: 0, z: -22 }, { x: -45, z: -28 }, { x: 45, z: -28 }
+          ];
+
+          srv.bots.forEach((b, bIdx) => {
+            if (typeof b.x !== 'number') b.x = 0;
+            if (typeof b.z !== 'number') b.z = 0;
+            if (typeof b.y !== 'number') b.y = 0;
+            if (typeof b.vy !== 'number') b.vy = 0;
+            if (typeof b.vx !== 'number') b.vx = 0;
+            if (typeof b.vz !== 'number') b.vz = 0;
+            if (typeof b.botAngle !== 'number') b.botAngle = Math.random() * Math.PI * 2;
+            if (typeof b.stunTimer !== 'number') b.stunTimer = 0;
+            if (typeof b.slideTimer !== 'number') b.slideTimer = 0;
+            if (typeof b.slideCd !== 'number') b.slideCd = 0;
+            if (typeof b.wallJumpCd !== 'number') b.wallJumpCd = 0;
+            if (typeof b.jumpCd !== 'number') b.jumpCd = 0;
+            if (typeof b.tagCd !== 'number') b.tagCd = 0;
+            if (typeof b.noTagBackTimer !== 'number') b.noTagBackTimer = 0;
+            if (typeof b.flankSign !== 'number') b.flankSign = (bIdx % 2 === 0) ? 1 : -1;
+
+            if (b.stunTimer > 0) b.stunTimer = Math.max(0, b.stunTimer - dt);
+            if (b.tagCd > 0) b.tagCd = Math.max(0, b.tagCd - dt);
+            if (b.noTagBackTimer > 0) b.noTagBackTimer = Math.max(0, b.noTagBackTimer - dt);
+            if (b.slideTimer > 0) b.slideTimer = Math.max(0, b.slideTimer - dt);
+            if (b.slideCd > 0) b.slideCd = Math.max(0, b.slideCd - dt);
+            if (b.wallJumpCd > 0) b.wallJumpCd = Math.max(0, b.wallJumpCd - dt);
+            if (b.jumpCd > 0) b.jumpCd = Math.max(0, b.jumpCd - dt);
+
+            const prevBX = b.x;
+            const prevBZ = b.z;
+            const estVx = b.vx || 0;
+            const estVz = b.vz || 0;
+
+            const isBotChaser = (srv.mode === 'infection' && b.role === 'infected') ||
+                                ((srv.mode === 'onerunner' || srv.mode === 'classic') && b.role === 'tagger');
+            const isBotPrey = (srv.mode === 'infection' && b.role === 'survivor') ||
+                              ((srv.mode === 'onerunner' || srv.mode === 'classic') && b.role === 'runner');
+
+            let desiredAngle = b.botAngle;
+            let urgency = 0.92;
+            let nearestThreatDist = Infinity;
+            let targetHeightDiff = 0;
+
+            if (b.stunTimer <= 0) {
+              if (isBotChaser) {
+                let bestTarget = null;
+                let bestDist = Infinity;
+
+                for (const candidate of allParticipants) {
+                  if (candidate.id === b.id) continue;
+                  const isValidTarget = (srv.mode === 'infection' && candidate.role === 'survivor') ||
+                                        ((srv.mode === 'onerunner' || srv.mode === 'classic') && candidate.role === 'runner');
+                  if (!isValidTarget) continue;
+                  const d = Math.hypot(candidate.x - b.x, candidate.z - b.z);
+                  if (d < bestDist) {
+                    bestDist = d;
+                    bestTarget = candidate;
+                  }
+                }
+
+                if (bestTarget) {
+                  targetHeightDiff = (bestTarget.y || 0) - b.y;
+                  // Casual cut-off / slight lead with occasional human-like angle drift
+                  const leadTime = Math.min(0.45, bestDist / 26.0);
+                  const predX = bestTarget.x + (bestTarget.vx || 0) * leadTime;
+                  const predZ = bestTarget.z + (bestTarget.vz || 0) * leadTime;
+
+                  let aimX = predX;
+                  let aimZ = predZ;
+
+                  if (bestDist > 8 && bestDist < 18) {
+                    const toTargetX = bestTarget.x - b.x;
+                    const toTargetZ = bestTarget.z - b.z;
+                    const perpX = -toTargetZ / Math.max(bestDist, 0.01);
+                    const perpZ = toTargetX / Math.max(bestDist, 0.01);
+                    const cutOffset = b.flankSign * Math.min(3.5, bestDist * 0.14);
+                    aimX = predX + perpX * cutOffset;
+                    aimZ = predZ + perpZ * cutOffset;
+                  }
+
+                  desiredAngle = Math.atan2(aimX - b.x, aimZ - b.z) + Math.sin(nowMs * 0.003 + bIdx * 2) * 0.18;
+                  urgency = bestDist < 10 ? 1.08 : 0.96;
+
+                  // Occasional slide
+                  if (bestDist > 5 && bestDist < 9 && b.slideCd <= 0 && b.slideTimer <= 0 && b.y <= getBotSupportY(b.x, b.z, b.y) + 0.15 && Math.random() < dt * 0.9) {
+                    b.slideTimer = 0.35;
+                    b.slideCd = 2.8;
+                  }
+                }
+              } else if (isBotPrey) {
+                let fleeX = 0;
+                let fleeZ = 0;
+                let threatCount = 0;
+                let primaryThreat = null;
+
+                for (const candidate of allParticipants) {
+                  if (candidate.id === b.id) continue;
+                  const isThreat = (srv.mode === 'infection' && candidate.role === 'infected') ||
+                                   ((srv.mode === 'onerunner' || srv.mode === 'classic') && candidate.role === 'tagger');
+                  if (!isThreat) continue;
+                  const dx = b.x - candidate.x;
+                  const dz = b.z - candidate.z;
+                  const d = Math.hypot(dx, dz);
+                  if (d < 42 && d > 0.001) {
+                    const weight = 1 / Math.max(d, 2.0);
+                    fleeX += (dx / d) * weight;
+                    fleeZ += (dz / d) * weight;
+                    threatCount++;
+                    if (d < nearestThreatDist) {
+                      nearestThreatDist = d;
+                      primaryThreat = candidate;
+                    }
+                  }
+                }
+
+                if (threatCount > 0) {
+                  if (nearestThreatDist < 12 && primaryThreat) {
+                    const tx = primaryThreat.x - b.x;
+                    const tz = primaryThreat.z - b.z;
+                    const pX = -tz / Math.max(nearestThreatDist, 0.01);
+                    const pZ = tx / Math.max(nearestThreatDist, 0.01);
+                    const weave = Math.sin(nowMs * 0.004 + bIdx) * b.flankSign * 0.4;
+                    fleeX += pX * weave;
+                    fleeZ += pZ * weave;
+                  }
+
+                  if (Math.abs(b.x) > 105) fleeX -= Math.sign(b.x) * 0.8;
+                  if (Math.abs(b.z) > 105) fleeZ -= Math.sign(b.z) * 0.8;
+                  desiredAngle = Math.atan2(fleeX, fleeZ);
+                  urgency = nearestThreatDist < 14 ? 1.12 : 0.98;
+
+                  if (nearestThreatDist < 8 && b.slideCd <= 0 && b.slideTimer <= 0 && b.y <= getBotSupportY(b.x, b.z, b.y) + 0.15 && Math.random() < dt * 1.0) {
+                    b.slideTimer = 0.4;
+                    b.slideCd = 2.6;
+                    b.flankSign *= -1;
+                  }
+                } else {
+                  b.botTimer -= dt;
+                  if (b.botTimer <= 0) {
+                    b.botAngle = normalizeAngle(b.botAngle + (Math.random() - 0.5) * 1.6);
+                    b.botTimer = 1.4 + Math.random() * 2.0;
+                  }
+                  desiredAngle = b.botAngle;
+                  urgency = 0.85;
+                }
+              } else {
+                b.botTimer -= dt;
+                if (b.botTimer <= 0) {
+                  b.botAngle = normalizeAngle(b.botAngle + (Math.random() - 0.5) * 1.8);
+                  b.botTimer = 1.4 + Math.random() * 2.0;
+                }
+                desiredAngle = b.botAngle;
+                urgency = 0.85;
+              }
+            }
+
+            const aheadHit = botCollidesAt(
+              b.x + Math.sin(desiredAngle) * 1.8,
+              b.z + Math.cos(desiredAngle) * 1.8,
+              b.y,
+              0.55
+            );
+            const isNearWall = Boolean(aheadHit && aheadHit.isWallRunnable && aheadHit.maxY > b.y + 1.2);
+
+            if (b.stunTimer <= 0) {
+              if (isNearWall && b.wallJumpCd <= 0 && Math.random() < dt * 2.2) {
+                b.vy = 13.0;
+                b.wallJumpCd = 0.45;
+              } else if (!isNearWall) {
+                const lookAhead = 2.5;
+                if (botCollidesAt(b.x + Math.sin(desiredAngle) * lookAhead, b.z + Math.cos(desiredAngle) * lookAhead, b.y, 0.55)) {
+                  const lowObs = botCollidesAt(b.x + Math.sin(desiredAngle) * 1.6, b.z + Math.cos(desiredAngle) * 1.6, b.y, 0.5);
+                  if (lowObs && lowObs.maxY - b.y < 3.0 && b.y <= getBotSupportY(b.x, b.z, b.y) + 0.15) {
+                    b.vy = 12.2;
+                    b.jumpCd = 0.65;
+                  } else {
+                    const leftAngle = normalizeAngle(desiredAngle + 1.15);
+                    const rightAngle = normalizeAngle(desiredAngle - 1.15);
+                    const leftClear = !botCollidesAt(b.x + Math.sin(leftAngle) * lookAhead, b.z + Math.cos(leftAngle) * lookAhead, b.y, 0.55);
+                    const rightClear = !botCollidesAt(b.x + Math.sin(rightAngle) * lookAhead, b.z + Math.cos(rightAngle) * lookAhead, b.y, 0.55);
+                    if (leftClear && rightClear) {
+                      desiredAngle = (Math.abs(b.x + b.z) % 2 === 0) ? leftAngle : rightAngle;
+                    } else if (leftClear) {
+                      desiredAngle = leftAngle;
+                    } else if (rightClear) {
+                      desiredAngle = rightAngle;
+                    } else {
+                      desiredAngle = normalizeAngle(desiredAngle + Math.PI * 0.75);
+                    }
+                  }
+                } else if (b.jumpCd <= 0 && b.y <= getBotSupportY(b.x, b.z, b.y) + 0.1) {
+                  if (Math.random() < dt * 0.5) {
+                    b.vy = 11.8;
+                    b.jumpCd = 1.2;
+                  }
+                }
+              }
+
+              const turnRate = isBotChaser || isBotPrey ? 4.4 : 3.2;
+              const diff = normalizeAngle(desiredAngle - b.botAngle);
+              b.botAngle = normalizeAngle(b.botAngle + diff * Math.min(1, turnRate * dt));
+
+              const baseSpeed = (srv.mode === 'onerunner' && b.role === 'runner') ? 9.6 : 8.2;
+              const slideMult = b.slideTimer > 0 ? 1.32 : 1.0;
+              const bSpeed = baseSpeed * urgency * slideMult;
+              const moveDx = Math.sin(b.botAngle) * bSpeed * dt;
+              const moveDz = Math.cos(b.botAngle) * bSpeed * dt;
+              const subSteps = Math.max(1, Math.ceil(Math.hypot(moveDx, moveDz) / 0.25));
+              const sDx = moveDx / subSteps;
+              const sDz = moveDz / subSteps;
+              const botRadius = 0.52;
+
+              for (let s = 0; s < subSteps; s++) {
+                const nx = b.x + sDx;
+                if (!botCollidesAt(nx, b.z, b.y, botRadius) && Math.abs(nx) < 135) {
+                  b.x = nx;
+                } else if (!isNearWall) {
+                  b.botAngle = normalizeAngle(b.botAngle + (Math.random() > 0.5 ? 1.1 : -1.1));
+                }
+
+                const nz = b.z + sDz;
+                if (!botCollidesAt(b.x, nz, b.y, botRadius) && Math.abs(nz) < 135) {
+                  b.z = nz;
+                } else if (!isNearWall) {
+                  b.botAngle = normalizeAngle(b.botAngle + (Math.random() > 0.5 ? 1.1 : -1.1));
+                }
+              }
+
+              const hitNow = botCollidesAt(b.x, b.z, b.y, botRadius);
+              if (hitNow && !isNearWall) {
+                const pL = (b.x + botRadius) - hitNow.minX;
+                const pR = hitNow.maxX - (b.x - botRadius);
+                const pB = (b.z + botRadius) - hitNow.minZ;
+                const pF = hitNow.maxZ - (b.z - botRadius);
+                const minP = Math.min(pL, pR, pB, pF);
+                if (minP === pL) b.x = hitNow.minX - botRadius - 0.02;
+                else if (minP === pR) b.x = hitNow.maxX + botRadius + 0.02;
+                else if (minP === pB) b.z = hitNow.minZ - botRadius - 0.02;
+                else b.z = hitNow.maxZ + botRadius + 0.02;
+              }
+            }
+
+            // Vertical physics, jump pads & rooftop/ledge landing
+            b.vy = Math.max(-34, b.vy - 28 * dt);
+            b.y += b.vy * dt;
+            const floorY = getBotSupportY(b.x, b.z, b.y);
+            if (b.y <= floorY) {
+              b.y = floorY;
+              b.vy = 0;
+              for (const jp of jumpPadCoords) {
+                if (Math.abs(b.x - jp.x) <= 2.4 && Math.abs(b.z - jp.z) <= 2.4 && floorY <= 0.6) {
+                  b.vy = 23.0;
+                  break;
+                }
+              }
+            }
+
+            b.vx = (b.x - prevBX) / Math.max(dt, 0.001);
+            b.vz = (b.z - prevBZ) / Math.max(dt, 0.001);
+            b.ry = b.botAngle;
+
+            // Active AI tagging against the player when in range, not stunned, and not in 5s no-tag-backs
+            if (b.stunTimer <= 0 && b.tagCd <= 0 && playerStunTimer <= 0 && srv.mode !== 'casual') {
+              const blockedByNoTagBack = (b.noTagBackTimer > 0 && b.lastTaggedById === clientId) ||
+                                       (selfNoTagBackTimer > 0 && lastTaggedEntityId === b.id);
+              const pDist3D = Math.hypot(b.x - playerPosX, b.y - playerFootY, b.z - playerPosZ);
+              if (!blockedByNoTagBack && pDist3D <= 3.6) {
+                if (srv.mode === 'infection' && b.role === 'infected' && selfRole === 'survivor') {
+                  selfRole = 'infected';
+                  selfNoTagBackTimer = 5.0;
+                  lastTaggedEntityId = b.id;
+                  b.noTagBackTimer = 5.0;
+                  b.lastTaggedById = clientId;
+                  b.score += 50;
+                  b.tagCd = 1.2;
+                  lastTagTime = nowMs + 600;
+                  showEvent(`${b.name} INFECTED ${selfName}! (5s No Tag-Backs)`);
+                  normalizeServerRoles(srv);
+                } else if (srv.mode === 'classic' && b.role === 'tagger' && selfRole === 'runner') {
+                  selfRole = 'tagger';
+                  selfNoTagBackTimer = 5.0;
+                  lastTaggedEntityId = b.id;
+                  b.role = 'runner';
+                  b.noTagBackTimer = 5.0;
+                  b.lastTaggedById = clientId;
+                  b.score += 50;
+                  b.tagCd = 1.4;
+                  lastTagTime = nowMs + 800;
+                  showEvent(`${b.name} TAGGED ${selfName}! ${selfName} is now IT! (5s No Tag-Backs)`);
+                } else if (srv.mode === 'onerunner' && b.role === 'tagger' && selfRole === 'runner') {
+                  selfRole = 'tagger';
+                  selfNoTagBackTimer = 5.0;
+                  lastTaggedEntityId = b.id;
+                  b.role = 'runner';
+                  b.noTagBackTimer = 5.0;
+                  b.lastTaggedById = clientId;
+                  b.score += 100;
+                  b.tagCd = 1.4;
+                  lastTagTime = nowMs + 800;
+                  showEvent(`${b.name} TAGGED ${selfName} and is now THE RUNNER! (5s No Tag-Backs)`);
+                }
+              }
+            }
+
+            // Active AI-vs-AI tagging in non-casual modes with 5s no-tag-backs
+            if (b.stunTimer <= 0 && b.tagCd <= 0 && srv.mode !== 'casual') {
+              for (let oIdx = 0; oIdx < srv.bots.length; oIdx++) {
+                if (oIdx === bIdx) continue;
+                const other = srv.bots[oIdx];
+                if ((other.stunTimer || 0) > 0) continue;
+                const botNoTagBack = (b.noTagBackTimer > 0 && b.lastTaggedById === other.id) ||
+                                     ((other.noTagBackTimer || 0) > 0 && other.lastTaggedById === b.id);
+                if (botNoTagBack) continue;
+
+                const oDist3D = Math.hypot(b.x - other.x, b.y - other.y, b.z - other.z);
+                if (oDist3D <= 3.4) {
+                  if (srv.mode === 'infection' && b.role === 'infected' && other.role === 'survivor') {
+                    other.role = 'infected';
+                    other.noTagBackTimer = 5.0;
+                    other.lastTaggedById = b.id;
+                    b.noTagBackTimer = 5.0;
+                    b.lastTaggedById = other.id;
+                    b.score += 50;
+                    b.tagCd = 1.2;
+                    showEvent(`${b.name} INFECTED ${other.name}! (5s No Tag-Backs)`);
+                    normalizeServerRoles(srv);
+                    break;
+                  } else if (srv.mode === 'classic' && b.role === 'tagger' && other.role === 'runner') {
+                    other.role = 'tagger';
+                    other.noTagBackTimer = 5.0;
+                    other.lastTaggedById = b.id;
+                    b.role = 'runner';
+                    b.noTagBackTimer = 5.0;
+                    b.lastTaggedById = other.id;
+                    b.score += 50;
+                    b.tagCd = 1.4;
+                    showEvent(`${b.name} TAGGED ${other.name}! ${other.name} is now IT! (5s No Tag-Backs)`);
+                    break;
+                  } else if (srv.mode === 'onerunner' && b.role === 'tagger' && other.role === 'runner') {
+                    other.role = 'tagger';
+                    other.noTagBackTimer = 5.0;
+                    other.lastTaggedById = b.id;
+                    b.role = 'runner';
+                    b.noTagBackTimer = 5.0;
+                    b.lastTaggedById = other.id;
+                    b.score += 100;
+                    b.tagCd = 1.4;
+                    showEvent(`${b.name} TAGGED ${other.name} and is now THE RUNNER! (5s No Tag-Backs)`);
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (srv.mode === 'onerunner' && b.role === 'runner' && b.stunTimer <= 0) {
+              b.score += dt * 5;
+            }
+          });
+
+          const allEntities = [...srv.bots, ...peers];
+          const activeIds = new Set(allEntities.map(e => e.id));
+
+          Object.keys(entityVisuals).forEach(id => {
+            if (!activeIds.has(id)) {
+              entityVisuals[id].rig.root.dispose();
+              delete entityVisuals[id];
+            }
+          });
+
+          allEntities.forEach(ent => {
+            if (!entityVisuals[ent.id]) {
+              entityVisuals[ent.id] = createEntityMesh(ent);
+              entityVisuals[ent.id].rig.root.position.set(ent.x, ent.y, ent.z);
+            }
+            updateEntityVisual(entityVisuals[ent.id], ent, dt);
+          });
+
+          hudRoleBadge.textContent = `ROLE: ${selfRole.toUpperCase()}`;
+          hudRoleBadge.className = `badge role-${selfRole}`;
+          hudScore.textContent = `SCORE: ${Math.floor(selfScore)}`;
+
+          const board = [
+            { name: selfName + ' (You)', role: selfRole, score: Math.floor(selfScore) },
+            ...allEntities.map(e => ({ name: e.name, role: e.role, score: Math.floor(e.score) }))
+          ].sort((a, b) => b.score - a.score);
+
+          leaderboardList.innerHTML = board
+            .slice(0, 8)
+            .map(item => `<div><b>${item.name}</b> [${item.role.toUpperCase()}] - ${item.score}</div>`)
+            .join('');
+
+          if (channel && nowMs - lastBroadcast > 50) {
+            lastBroadcast = nowMs;
+            channel.postMessage({
+              type: 'state',
+              id: clientId,
+              player: {
+                id: clientId,
+                name: selfName,
+                serverId: currentRoomId,
+                mode: srv.mode,
+                x: selfRig.root.position.x,
+                y: selfRig.root.position.y,
+                z: selfRig.root.position.z,
+                ry: cameraYaw,
+                role: selfRole,
+                score: Math.floor(selfScore)
+              }
+            });
+          }
+        }
+
+        const posAttr = sparkGeo.getAttribute('position');
+        for (let i = 0; i < sparkCount; i++) {
+          let py = posAttr.getY(i) - 24 * dt;
+          if (py < 0) py = 85;
+          posAttr.setY(i, py);
+        }
+        posAttr.needsUpdate = true;
+
+        scene.render();
+        threeRenderer.render(threeScene, threeCamera);
+      } catch (err) {
+        reportRuntimeError(err);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      engine.resize();
+      threeRenderer.setSize(window.innerWidth, window.innerHeight);
+      threeCamera.aspect = window.innerWidth / window.innerHeight;
+      threeCamera.updateProjectionMatrix();
+    });
+  </script>
+</body>
+</html>
