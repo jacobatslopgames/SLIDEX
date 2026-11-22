@@ -13,3 +13,7 @@ Tag'em All!
 # SLOP GAMES
 
 We Make Games.
+
+# VERSION
+
+Alpha a.1.1
